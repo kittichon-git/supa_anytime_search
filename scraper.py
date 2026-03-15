@@ -20,7 +20,8 @@ SERPER_API_KEY = os.environ["SERPER_API_KEY"]
 SUPABASE_URL   = os.environ["SUPABASE_URL"]
 SUPABASE_KEY   = os.environ["SUPABASE_KEY"]
 
-NUM_RESULTS = 100     # ดึง 100 รายการต่อ query
+NUM_RESULTS = 10      # ต่อหน้า (Serper Free = 10/หน้า)
+NUM_PAGES   = 3      # ดึง 3 หน้า = 30 results/query = 3 credits/query
 SLEEP_SEC   = 0.6
 TABLE       = "anytime_results"
 
@@ -38,8 +39,8 @@ log = logging.getLogger(__name__)
 # ปี พ.ศ.  —  ปีนี้กับปีที่แล้ว
 # ══════════════════════════════════════════════════════
 TODAY        = date.today()
-THIS_YEAR_BE = TODAY.year + 543          # เช่น 2568
-NEXT_YEAR_BE = THIS_YEAR_BE + 1         # เช่น 2569
+THIS_YEAR_BE = TODAY.year + 543 - 1      # ค.ศ. 2026 → พ.ศ. 2568
+NEXT_YEAR_BE = THIS_YEAR_BE + 1         # พ.ศ. 2569
 YR           = f"({THIS_YEAR_BE} OR {NEXT_YEAR_BE})"
 
 def yq(base: str) -> list[str]:
@@ -177,18 +178,27 @@ def make_content_hash(url: str, title: str) -> str:
 # SERPER  —  ยิง 1 query, ดึง 100 รายการ
 # ══════════════════════════════════════════════════════
 def serper_search(query: str) -> list[dict]:
-    try:
-        resp = requests.post(
-            "https://google.serper.dev/search",
-            headers={"X-API-KEY": SERPER_API_KEY, "Content-Type": "application/json"},
-            json={"q": query, "gl": "th", "hl": "th", "num": NUM_RESULTS},
-            timeout=20,
-        )
-        resp.raise_for_status()
-        return resp.json().get("organic", [])
-    except Exception as e:
-        log.warning(f"Serper error [{query[:60]}]: {e}")
-        return []
+    """ดึงผล 3 หน้า (30 รายการ) ต่อ query — ใช้ 3 credits"""
+    all_items = []
+    for page in range(1, NUM_PAGES + 1):
+        try:
+            resp = requests.post(
+                "https://google.serper.dev/search",
+                headers={"X-API-KEY": SERPER_API_KEY, "Content-Type": "application/json"},
+                json={"q": query, "gl": "th", "hl": "th",
+                      "num": NUM_RESULTS, "page": page},
+                timeout=20,
+            )
+            resp.raise_for_status()
+            items = resp.json().get("organic", [])
+            all_items.extend(items)
+            if len(items) < NUM_RESULTS:
+                break          # หน้าสุดท้ายแล้ว ไม่ต้องดึงต่อ
+            time.sleep(0.3)    # หน่วงเล็กน้อยระหว่างหน้า
+        except Exception as e:
+            log.warning(f"Serper error page={page} [{query[:50]}]: {e}")
+            break
+    return all_items
 
 # ══════════════════════════════════════════════════════
 # SUPABASE  —  upsert (skip ถ้า content_hash ซ้ำ)

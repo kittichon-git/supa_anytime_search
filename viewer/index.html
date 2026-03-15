@@ -30,7 +30,7 @@
   --red:       #cf222e;
 }
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: 'Sarabun', -apple-system, sans-serif; font-size: 15px; background: var(--bg); color: var(--text); line-height: 1.6; }
+body { font-family: 'Sarabun', -apple-system, sans-serif; font-size: 16px; background: var(--bg); color: var(--text); line-height: 1.6; }
 
 /* ── Top bar ── */
 .topbar {
@@ -78,23 +78,34 @@ body { font-family: 'Sarabun', -apple-system, sans-serif; font-size: 15px; backg
 .result-item:hover { background: var(--bg2); margin: 0 -16px; padding: 14px 16px 11px; border-radius: 6px; }
 
 /* read state */
-.result-item.is-read .r-title { color: var(--read-color) !important; text-decoration: line-through; text-decoration-color: var(--border2); }
-.result-item.is-read .r-url, .result-item.is-read .r-snip { color: var(--text3); }
+.result-item.is-read {
+  background: #f6f8fa;
+  border-radius: 6px;
+  margin: 0 -16px;
+  padding: 14px 16px 11px;
+  opacity: 0.55;
+}
+.result-item.is-read .r-title { color: var(--text3) !important; text-decoration: line-through; text-decoration-color: var(--border2); font-weight: 400; }
+.result-item.is-read .r-url,
+.result-item.is-read .r-snip,
+.result-item.is-read .r-tag,
+.result-item.is-read .r-date { color: var(--text3); }
+.result-item.is-read mark { background: none; color: var(--text3); }
 
 .r-url-row { display: flex; align-items: center; gap: 5px; margin-bottom: 3px; }
 .r-fav { width: 14px; height: 14px; border-radius: 2px; flex-shrink: 0; }
-.r-url { font-size: 12px; color: var(--text2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: calc(100% - 20px); }
+.r-url { font-size: 14px; color: var(--text2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: calc(100% - 20px); }
 
 .r-row { display: flex; align-items: flex-start; gap: 8px; }
 .r-body { flex: 1; min-width: 0; }
 
-.r-title { font-size: 16px; color: var(--link); text-decoration: none; display: block; line-height: 1.4; word-break: break-word; cursor: pointer; }
+.r-title { font-size: 20px; color: var(--link); text-decoration: none; display: block; line-height: 1.3; word-break: break-word; cursor: pointer; font-weight: 500; }
 .r-title:hover { text-decoration: underline; }
 .r-title:visited { color: var(--link-vis); }
-.r-snip { font-size: 13px; color: var(--text2); line-height: 1.55; margin-top: 4px; }
-.r-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
-.r-tag { font-size: 11px; background: var(--tag-bg); color: var(--tag-color); border-radius: 20px; padding: 1px 8px; border: 1px solid #b6e3ff; }
-.r-date { font-size: 11px; color: var(--text3); }
+.r-snip { font-size: 15px; color: var(--text2); line-height: 1.58; margin-top: 5px; }
+.r-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 7px; }
+.r-tag { font-size: 12px; background: var(--tag-bg); color: var(--tag-color); border-radius: 20px; padding: 2px 10px; border: 1px solid #b6e3ff; }
+.r-date { font-size: 13px; color: var(--text3); }
 
 /* ── Highlight ── */
 mark { background: var(--hl-bg); color: var(--hl-color); border-radius: 2px; padding: 0 1px; font-style: normal; }
@@ -126,8 +137,8 @@ mark { background: var(--hl-bg); color: var(--hl-color); border-radius: 2px; pad
 @media (max-width: 540px) {
   .topbar { padding: 8px 12px; }
   #list { padding: 0 12px 40px; }
-  .r-title { font-size: 15px; }
-  .r-snip  { font-size: 12px; }
+  .r-title { font-size: 18px; }
+  .r-snip  { font-size: 14px; }
   .tab { padding: 8px 10px 6px; font-size: 13px; }
 }
 </style>
@@ -230,6 +241,7 @@ function render(q) {
   document.getElementById("stats-line").textContent =
     `แสดง ${start+1}–${Math.min(start+PER, filtered.length)} จาก ${filtered.length.toLocaleString()} รายการ`;
   list.innerHTML = slice.map(r => itemHTML(r, q)).join("");
+  applyHighlights();
   renderPager();
 }
 
@@ -249,8 +261,8 @@ function itemHTML(r, q) {
     <div class="r-row">
       <div class="r-body">
         <a class="r-title" href="${esc(r.url)}" target="_blank" rel="noopener"
-           onclick="onLink(event,${r.id})">${hiTitle}</a>
-        ${r.snippet ? `<div class="r-snip">${hiSnip}${(r.snippet||"").length>240?"…":""}</div>` : ""}
+           onclick="onLink(event,${r.id})" data-hl="${encodeURIComponent(hiTitle)}">${esc(r.title||"")}</a>
+        ${r.snippet ? `<div class="r-snip" data-hl="${encodeURIComponent(hiSnip)}">${esc((r.snippet||"").slice(0,240))}${(r.snippet||"").length>240?"…":""}</div>` : ""}
         <div class="r-meta">
           ${r.search_group ? `<span class="r-tag">${esc(r.search_group)}</span>` : ""}
           ${r.found_date   ? `<span class="r-date">${r.found_date}</span>` : ""}
@@ -264,15 +276,38 @@ function itemHTML(r, q) {
   </div>`;
 }
 
-// ── Highlight: escape ก่อน แล้วค่อย wrap <mark> ──
+// ── คำสำคัญที่ highlight ตอน load ครั้งแรก (ไม่ต้องพิมพ์) ──
+const DEFAULT_HL_WORDS = [
+  "ขายทอดตลาด","โดยวิธีขายทอดตลาด","ขายทอดตลาดพัสดุ","ขายทอดตลาดครุภัณฑ์",
+  "ขายทอดตลาดรถยนต์","ขายทอดตลาดอาคาร","จำหน่ายพัสดุ","จำหน่ายครุภัณฑ์",
+  "จำหน่ายพัสดุชำรุด","จำหน่ายครุภัณฑ์ชำรุด","ระบายพัสดุ","ระบายครุภัณฑ์",
+  "จำหน่ายทรัพย์สิน","ไม่จำเป็นต้องใช้ในราชการ","พัสดุชำรุดเสื่อมสภาพ",
+  "จำหน่ายของเสื่อมสภาพ","จำหน่ายพัสดุเสื่อมสภาพ","ประมูลขาย","ระบายทรัพย์สิน"
+];
+
+// สร้าง regex รวมคำทั้งหมด (ใช้ซ้ำได้เร็ว)
+const DEFAULT_HL_RE = new RegExp(
+  `(${DEFAULT_HL_WORDS.map(w => w.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")).join("|")})`,
+  "gi"
+);
+function applyHighlights() {
+  document.querySelectorAll("[data-hl]").forEach(el => {
+    el.innerHTML = decodeURIComponent(el.getAttribute("data-hl"));
+    el.removeAttribute("data-hl");
+  });
+}
+
+// ── Highlight: split text by query, escape each part, wrap match with <mark> ──
 function hlText(text, q) {
-  const escaped = esc(text);
-  if (!q || !q.trim()) return escaped;
+  if (!text) return "";
+  // ถ้าไม่มีคำค้นหา ใช้ DEFAULT_HL_WORDS แทน
+  const re = (q && q.trim())
+    ? new RegExp(`(${q.trim().replace(/[.*+?^${}()|[\]\\]/g,"\\$&")})`, "gi")
+    : DEFAULT_HL_RE;
   try {
-    const safeQ = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    return escaped.replace(new RegExp(esc(q).replace(/[.*+?^${}()|[\]\\]/g,"\\$&"), "gi"),
-      m => `<mark>${m}</mark>`);
-  } catch(e) { return escaped; }
+    const parts = text.split(re);
+    return parts.map((p, i) => i % 2 === 1 ? `<mark>${esc(p)}</mark>` : esc(p)).join("");
+  } catch(e) { return esc(text); }
 }
 
 function onLink(e, id) { markRead(id); }
