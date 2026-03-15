@@ -101,7 +101,8 @@ body { font-family: 'Sarabun', -apple-system, sans-serif; font-size: 16px; backg
 
 .r-title { font-size: 20px; color: var(--link); text-decoration: none; display: block; line-height: 1.3; word-break: break-word; cursor: pointer; font-weight: 500; }
 .r-title:hover { text-decoration: underline; }
-.r-title:visited { color: var(--link-vis); }
+.r-title:visited { color: #c0392b; }
+.r-title.clicked  { color: #e57373 !important; }
 .r-snip { font-size: 15px; color: var(--text2); line-height: 1.58; margin-top: 5px; }
 .r-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 7px; }
 .r-tag { font-size: 12px; background: var(--tag-bg); color: var(--tag-color); border-radius: 20px; padding: 2px 10px; border: 1px solid #b6e3ff; }
@@ -112,11 +113,11 @@ mark { background: var(--hl-bg); color: var(--hl-color); border-radius: 2px; pad
 
 /* ── Check button ── */
 .btn-check {
-  width: 24px; height: 24px; border-radius: 50%;
-  border: 1px solid var(--border); background: var(--bg);
+  width: 48px; height: 48px; border-radius: 50%;
+  border: 1.5px solid var(--border); background: var(--bg);
   color: var(--text3); cursor: pointer; flex-shrink: 0;
   display: flex; align-items: center; justify-content: center;
-  font-size: 12px; transition: .15s; margin-top: 2px;
+  font-size: 20px; transition: .15s; margin-top: 2px;
 }
 .btn-check:hover { border-color: var(--green); color: var(--green); background: var(--green-bg); }
 .btn-check.done  { border-color: var(--green); color: var(--green); background: var(--green-bg); cursor: default; }
@@ -173,8 +174,8 @@ mark { background: var(--hl-bg); color: var(--hl-color); border-radius: 2px; pad
 <div class="pagination" id="pagination"></div>
 
 <script>
-const SB_URL = "https://pfnhxozecazjxjgpfrzu.supabase.co";
-const SB_KEY = "sb_publishable_9idaI5irCf8jia0qABYyhA_P5VoRRBo";
+const SB_URL = "https://YOUR_PROJECT.supabase.co";
+const SB_KEY = "YOUR_ANON_KEY";
 const TABLE  = "anytime_results";
 const PER    = 100;
 
@@ -242,6 +243,7 @@ function render(q) {
     `แสดง ${start+1}–${Math.min(start+PER, filtered.length)} จาก ${filtered.length.toLocaleString()} รายการ`;
   list.innerHTML = slice.map(r => itemHTML(r, q)).join("");
   applyHighlights();
+  applyClickedColors();
   renderPager();
 }
 
@@ -261,7 +263,8 @@ function itemHTML(r, q) {
     <div class="r-row">
       <div class="r-body">
         <a class="r-title" href="${esc(r.url)}" target="_blank" rel="noopener"
-           onclick="onLink(event,${r.id})" data-hl="${encodeURIComponent(hiTitle)}">${esc(r.title||"")}</a>
+           onclick="onLink(event,${r.id})" data-hl="${encodeURIComponent(hiTitle)}"
+           data-url="${esc(r.url)}">${esc(r.title||"")}</a>
         ${r.snippet ? `<div class="r-snip" data-hl="${encodeURIComponent(hiSnip)}">${esc((r.snippet||"").slice(0,240))}${(r.snippet||"").length>240?"…":""}</div>` : ""}
         <div class="r-meta">
           ${r.search_group ? `<span class="r-tag">${esc(r.search_group)}</span>` : ""}
@@ -310,7 +313,35 @@ function hlText(text, q) {
   } catch(e) { return esc(text); }
 }
 
-function onLink(e, id) { markRead(id); }
+// ── Track clicked URLs (localStorage) ──
+const CLICKED_KEY = "auction_clicked_urls";
+
+function getClickedUrls() {
+  try { return new Set(JSON.parse(localStorage.getItem(CLICKED_KEY) || "[]")); }
+  catch(e) { return new Set(); }
+}
+
+function saveClickedUrl(url) {
+  try {
+    const set = getClickedUrls();
+    set.add(url);
+    localStorage.setItem(CLICKED_KEY, JSON.stringify([...set].slice(-2000)));
+  } catch(e) {}
+}
+
+function applyClickedColors() {
+  const clicked = getClickedUrls();
+  document.querySelectorAll("a.r-title[data-url]").forEach(el => {
+    if (clicked.has(el.getAttribute("data-url"))) el.classList.add("clicked");
+  });
+}
+
+function onLink(e, id) {
+  // หา URL จาก poolNew หรือ poolRead
+  const item = [...poolNew, ...poolRead].find(r => r.id === id);
+  if (item) saveClickedUrl(item.url);
+  markRead(id);
+}
 
 async function markRead(id) {
   const idx = poolNew.findIndex(r => r.id === id);

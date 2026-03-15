@@ -38,14 +38,11 @@ log = logging.getLogger(__name__)
 # ══════════════════════════════════════════════════════
 # ปี พ.ศ.  —  ปีนี้กับปีที่แล้ว
 # ══════════════════════════════════════════════════════
-TODAY        = date.today()
-THIS_YEAR_BE = TODAY.year + 543 - 1      # ค.ศ. 2026 → พ.ศ. 2568
-NEXT_YEAR_BE = THIS_YEAR_BE + 1         # พ.ศ. 2569
-YR           = f"({THIS_YEAR_BE} OR {NEXT_YEAR_BE})"
+TODAY = date.today()
 
 def yq(base: str) -> list[str]:
-    """คืน 1 query: มีปี พ.ศ. เท่านั้น"""
-    return [f"{base} {YR}"]
+    """คืน 1 query (ไม่มีปี พ.ศ. — ใช้ tbs=qdr:w แทน)"""
+    return [base]
 
 # ══════════════════════════════════════════════════════
 # เว็บขยะ — ใส่ใน query ทุกตัวที่ไม่ได้ระบุ site: เฉพาะ
@@ -190,7 +187,7 @@ def serper_search(query: str, max_pages: int = NUM_PAGES) -> list[dict]:
                 "https://google.serper.dev/search",
                 headers={"X-API-KEY": SERPER_API_KEY, "Content-Type": "application/json"},
                 json={"q": query, "gl": "th", "hl": "th",
-                      "num": NUM_RESULTS, "page": page},
+                      "num": NUM_RESULTS, "page": page, "tbs": "qdr:w"},
                 timeout=20,
             )
             resp.raise_for_status()
@@ -221,7 +218,7 @@ def upsert_results(sb, rows: list[dict]) -> int:
 def main():
     sb = create_client(SUPABASE_URL, SUPABASE_KEY)
     today_str = TODAY.isoformat()
-    log.info(f"▶ เริ่ม scrape วันที่ {today_str}  ปีที่ค้น: {THIS_YEAR_BE}/{NEXT_YEAR_BE}")
+    log.info(f"▶ เริ่ม scrape วันที่ {today_str}  โหมด: 7 วันล่าสุด (qdr:w)")
 
     total_saved = 0
     total_hits  = 0
