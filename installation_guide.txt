@@ -1,0 +1,319 @@
+════════════════════════════════════════════════════════════
+  คู่มือการติดตั้ง ระบบค้นหาข่าวขายทอดตลาดราชการ
+  Auction News Scraper + Supabase + GitHub Pages
+════════════════════════════════════════════════════════════
+
+หมายเหตุสำคัญ — การอยู่ร่วมกับโปรเจคเดิม
+──────────────────────────────────────────────
+ระบบนี้ถูกออกแบบให้ใช้ Supabase Project เดิม (deep search v2)
+ได้โดยไม่กระทบตารางเดิม:
+  ตารางเดิม : action / global_excludes / province_groups / search_settings
+  ตารางใหม่ : anytime_results  (ขึ้นต้นด้วย anytime_)
+
+ตาราง index และ policy ก็ใช้ prefix anytime_ ทั้งหมด
+จึงไม่มีการชนกันแน่นอน
+
+
+โครงสร้างไฟล์ที่ต้องมีใน GitHub Repository
+──────────────────────────────────────────────
+your-repo/
+├── .github/
+│   └── workflows/
+│       └── daily_scrape.yml      ← GitHub Actions รันทุกวัน
+├── viewer/
+│   └── index.html                ← หน้าให้พนักงานเปิดดู
+├── scraper.py                    ← Python script หลัก
+├── requirements.txt              ← Python dependencies
+└── supabase_schema.sql           ← SQL สร้างตาราง
+
+
+════════════════════════════════════════════
+ขั้นตอนที่ 1 — สร้างตาราง Supabase
+════════════════════════════════════════════
+
+1. เข้า https://supabase.com → เลือก Project "deep search v2"
+   (Project เดิม ไม่ต้องสร้างใหม่)
+2. ไปที่เมนู "SQL Editor"
+3. กด "New query"
+4. Copy SQL ทั้งหมดจากไฟล์ supabase_schema.sql วางลงไป
+5. กดปุ่ม "Run" (หรือ Ctrl+Enter)
+6. ตรวจสอบว่าไม่มี Error
+
+ตารางที่จะถูกสร้างใหม่:
+  anytime_results       ← ตารางข้อมูลหลัก
+
+ของที่จะถูกสร้างเพิ่ม:
+  idx_anytime_*         ← Index 5 ตัว
+  trg_anytime_*         ← Trigger 1 ตัว
+  anytime_allow_*       ← RLS Policy 3 ตัว
+  anytime_unread_count  ← View สำหรับนับยังไม่อ่าน
+
+ตารางเดิมจะไม่ถูกแตะต้องเลย:
+  action / global_excludes / province_groups / search_settings
+
+หมายเหตุ Function update_updated_at():
+  ถ้าโปรเจคเดิมสร้าง function นี้ไว้แล้ว
+  SQL จะ "CREATE OR REPLACE" ทับโดยไม่ error
+  เพราะ logic เหมือนกัน (SET updated_at = NOW())
+
+
+columns ของตาราง anytime_results:
+  id            : Primary key (auto increment)
+  content_hash  : SHA256(url + title) ใช้ dedup (UNIQUE)
+  title         : ชื่อบทความ/ประกาศ
+  url           : ลิ้งต้นทาง
+  snippet       : ข้อความตัวอย่าง
+  query_used    : query ที่ใช้ค้น
+  search_group  : กลุ่ม เช่น ท้องถิ่น / การศึกษา
+  found_date    : วันที่ค้นพบ
+  status        : new หรือ read
+  read_at       : เวลาที่อ่าน (NULL = ยังไม่อ่าน)
+  created_at    : เวลาที่บันทึก
+  updated_at    : เวลาที่แก้ไขล่าสุด
+
+
+════════════════════════════════════════════
+ขั้นตอนที่ 2 — เอา Supabase URL และ Key มาใช้
+════════════════════════════════════════════
+
+ใช้ URL และ Key จาก Project เดิมได้เลย ไม่ต้องสร้างใหม่
+
+1. ใน Supabase → Project "deep search v2"
+2. ไปที่ Project Settings → API
+3. จด/copy ค่า 2 อย่าง:
+   - Project URL  : เช่น https://abcdefgh.supabase.co
+   - anon public  : eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+ค่าเหล่านี้จะใช้ใน:
+  - GitHub Secrets (สำหรับ scraper.py)
+  - viewer/index.html (สำหรับ frontend)
+
+
+════════════════════════════════════════════
+ขั้นตอนที่ 3 — เอา Serper API Key มาใช้
+════════════════════════════════════════════
+
+1. สมัคร/เข้าสู่ระบบที่ https://serper.dev
+2. ไปที่ Dashboard → API Key
+3. Copy key
+4. Free tier: 2,500 queries/เดือน
+   ระบบนี้ใช้ประมาณ ~40 queries/วัน = ~1,200/เดือน
+
+
+════════════════════════════════════════════
+ขั้นตอนที่ 4 — ตั้งค่า GitHub Repository
+════════════════════════════════════════════
+
+4.1 สร้าง Repository ใหม่ (แยกจาก repo เดิมของ deep search v2)
+  1. เข้า https://github.com → กด "New repository"
+  2. ตั้งชื่อ เช่น "auction-anytime"
+  3. เลือก Public (จำเป็นสำหรับ GitHub Pages ฟรี)
+  4. กด "Create repository"
+
+4.2 Upload ไฟล์ทั้งหมด
+  วิธีที่ 1 — ผ่าน GitHub Web:
+    - เปิด repo → กด "Add file" → "Upload files"
+    - ลากไฟล์ทั้งหมดขึ้น (รวมโฟลเดอร์ .github และ viewer)
+    - กด "Commit changes"
+
+  วิธีที่ 2 — ผ่าน Git command line:
+    git init
+    git add .
+    git commit -m "initial setup"
+    git remote add origin https://github.com/USERNAME/auction-anytime.git
+    git push -u origin main
+
+  โครงสร้างที่ต้องมีใน repo:
+    .github/workflows/daily_scrape.yml
+    viewer/index.html
+    scraper.py
+    requirements.txt
+    supabase_schema.sql
+
+4.3 ตั้งค่า GitHub Secrets
+  ไปที่ repo ใหม่ → Settings → Secrets and variables → Actions
+  กด "New repository secret" แล้วเพิ่ม 3 ค่า:
+
+  ชื่อ Secret        ค่า
+  ─────────────────  ──────────────────────────────────────
+  SERPER_API_KEY     [key จาก serper.dev]
+  SUPABASE_URL       https://xxxx.supabase.co  (Project เดิม)
+  SUPABASE_KEY       [anon key จาก Project เดิม]
+
+  ** Secrets เหล่านี้เป็นคนละชุดกับ repo เดิม ไม่กระทบกัน **
+
+
+════════════════════════════════════════════
+ขั้นตอนที่ 5 — แก้ไข viewer/index.html
+════════════════════════════════════════════
+
+เปิดไฟล์ viewer/index.html แล้วหาบรรทัด:
+
+  const SB_URL = "https://YOUR_PROJECT.supabase.co";
+  const SB_KEY = "YOUR_ANON_KEY";
+
+แก้เป็น URL และ anon key จาก Project เดิม เช่น:
+
+  const SB_URL = "https://abcdefgh.supabase.co";
+  const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...";
+
+ชื่อตาราง (TABLE) ตั้งไว้แล้วเป็น "anytime_results" ไม่ต้องแก้
+
+
+════════════════════════════════════════════
+ขั้นตอนที่ 6 — เปิด GitHub Pages
+════════════════════════════════════════════
+
+1. ใน GitHub repo ใหม่ → ไปที่ Settings
+2. เลือก "Pages" ในเมนูซ้าย
+3. ส่วน "Build and deployment":
+   - Source: "Deploy from a branch"
+   - Branch: main
+   - Folder: /viewer
+4. กด Save
+5. รอประมาณ 1-2 นาที
+6. URL ของหน้าจะแสดงขึ้นมา เช่น:
+   https://username.github.io/auction-anytime/
+
+URL นี้ส่งให้พนักงานเปิดดูข่าว
+
+
+════════════════════════════════════════════
+ขั้นตอนที่ 7 — ทดสอบระบบ
+════════════════════════════════════════════
+
+7.1 ทดสอบ scraper ทันที:
+  ไปที่ repo → Actions → "Daily Auction Search"
+  → กด "Run workflow" → "Run workflow"
+  → รอประมาณ 3-5 นาที
+  → ถ้า icon สีเขียว = สำเร็จ
+
+7.2 ตรวจสอบข้อมูลใน Supabase:
+  Project เดิม → Table Editor
+  ควรเห็นตาราง "anytime_results" ปรากฏขึ้น
+  และมีข้อมูลอยู่ในนั้น (ตารางเดิมยังอยู่ครบ)
+
+7.3 ตรวจสอบหน้า viewer:
+  เปิด GitHub Pages URL
+  ควรเห็นรายการข่าวในแท็บ "ยังไม่อ่าน"
+
+7.4 ทดสอบการทำงาน:
+  - กดปุ่ม ✓ หรือคลิกชื่อเรื่อง → mark อ่านแล้ว
+  - badge ลดทันที ไม่ต้อง refresh
+  - ชื่อเรื่องขีดทับเปลี่ยนสีเทา
+
+
+════════════════════════════════════════════
+การรันอัตโนมัติทุกวัน
+════════════════════════════════════════════
+
+ตั้งไว้รันทุกวัน 08:00 น. เวลาไทย (01:00 UTC)
+  cron: "0 1 * * *"
+
+ใช้ credit ~40 queries/วัน = ~1,200/เดือน
+Serper Free tier มี 2,500/เดือน → เหลือสำรอง ~1,300
+
+ถ้าต้องการเปลี่ยนเวลา แก้ใน .github/workflows/daily_scrape.yml:
+  00:00 UTC = 07:00 ไทย
+  01:00 UTC = 08:00 ไทย
+  02:00 UTC = 09:00 ไทย
+
+
+════════════════════════════════════════════
+การใช้งานหน้า viewer สำหรับพนักงาน
+════════════════════════════════════════════
+
+เปิดลิ้ง GitHub Pages ในเบราเซอร์หรือมือถือ
+
+แท็บ "ยังไม่อ่าน":
+  - ประกาศใหม่ทั้งหมดที่ยังไม่ได้อ่าน
+  - เรียงจากใหม่ไปเก่า (วันที่ค้นเจอ)
+  - 100 รายการต่อหน้า
+
+แท็บ "อ่านแล้ว":
+  - 100 รายการล่าสุดที่อ่านแล้ว
+  - เรียงจากเวลาที่อ่านล่าสุดไปเก่าสุด
+
+ทำเครื่องหมายอ่านแล้ว (ทำได้ 2 วิธี):
+  1. คลิกชื่อเรื่อง → เปิดลิ้ง + mark อัตโนมัติ
+  2. กดปุ่ม ✓ วงกลมด้านขวาของรายการ
+
+ผลทันที (ไม่ต้อง refresh):
+  - ชื่อเรื่องขีดทับ เปลี่ยนสีเทา
+  - badge ลดลง
+  - ส่งข้อมูลไป Supabase เบื้องหลัง
+
+การค้นหา:
+  - พิมพ์คำในช่องค้นหา
+  - คำที่ค้นพบจะถูก highlight สีเขียวใน title + snippet
+
+
+════════════════════════════════════════════
+Query Groups และ Serper Credit ต่อวัน
+════════════════════════════════════════════
+
+กลุ่ม                             queries/วัน
+──────────────────────────────    ───────────
+คำเจาะจง_ทุกเว็บ                 4
+คำกลาง_site.th                   4
+โรงพยาบาล_สาธารณสุข             2
+ท้องถิ่น                         2
+การศึกษา                         4
+ความมั่นคง                       4
+กระทรวง_กรม                     4
+จังหวัด_เหนือ                   4
+จังหวัด_อีสาน                   4
+จังหวัด_กลาง_ตะวันออก_ตะวันตก  6
+จังหวัด_ใต้                     2
+──────────────────────────────    ───────────
+รวม/วัน                          ~40
+รวม/เดือน (30 วัน)               ~1,200
+
+Serper Free: 2,500/เดือน → เหลือ ~1,300 สำรอง
+
+
+════════════════════════════════════════════
+การแก้ปัญหาเบื้องต้น
+════════════════════════════════════════════
+
+Actions รัน Failed:
+  → ดู log ใน Actions → คลิก run ที่ failed
+  → มักเกิดจาก Secret ไม่ถูกต้อง
+  → ตรวจ SERPER_API_KEY / SUPABASE_URL / SUPABASE_KEY
+
+หน้า viewer โหลดไม่มีข้อมูล:
+  → ตรวจ SB_URL และ SB_KEY ใน index.html
+  → ตรวจ RLS policy ใน Supabase ว่าอนุญาต SELECT
+  → เปิด DevTools (F12) → Console ดู error
+
+ข้อมูลไม่อัปเดต:
+  → Actions รันวันละครั้ง
+  → กด "Run workflow" ใน Actions เพื่อรันทันที
+
+Serper credit หมด:
+  → ลด NUM_RESULTS จาก 100 เป็น 50 ใน scraper.py
+  → หรือ upgrade plan ที่ serper.dev
+
+ตรวจสอบว่าตารางเดิมยังปกติ:
+  → Supabase → Table Editor
+  → ตาราง action / global_excludes / province_groups / search_settings
+     ควรยังอยู่ครบและข้อมูลไม่เปลี่ยน
+
+
+════════════════════════════════════════════
+ไฟล์ที่ต้องแก้ค่าก่อนใช้งาน (สรุป)
+════════════════════════════════════════════
+
+1. viewer/index.html
+   บรรทัด: const SB_URL = "https://YOUR_PROJECT.supabase.co";
+   บรรทัด: const SB_KEY = "YOUR_ANON_KEY";
+   (ใช้ URL และ key จาก Project เดิม deep search v2)
+
+2. GitHub Secrets (ตั้งใน repo ใหม่)
+   SERPER_API_KEY  ← จาก serper.dev
+   SUPABASE_URL    ← จาก Project เดิม
+   SUPABASE_KEY    ← จาก Project เดิม
+
+ไม่ต้องแก้อะไรใน scraper.py เพราะอ่านจาก Secrets อัตโนมัติ
+
+════════════════════════════════════════════

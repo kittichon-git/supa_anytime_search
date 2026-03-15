@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ข่าวขายทอดตลาดราชการ</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ── Supabase-style dark theme ── */
+:root {
+  --bg:        #1c1c1c;
+  --surface:   #2a2a2a;
+  --surface2:  #313131;
+  --border:    #3a3a3a;
+  --border2:   #484848;
+  --green:     #3ecf8e;
+  --green-dim: #1a6644;
+  --text:      #ededed;
+  --text2:     #a0a0a0;
+  --text3:     #6b6b6b;
+  --blue-link: #6eb3f7;
+  --hl-bg:     rgba(62,207,142,.22);
+  --hl-color:  #3ecf8e;
+  --read-line: #555;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Sarabun', sans-serif; font-size: 14px; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+/* ── Top bar ── */
+.topbar {
+  position: sticky; top: 0; z-index: 100;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 9px 16px;
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+}
+.logo { font-size: 1rem; font-weight: 500; color: var(--green); white-space: nowrap; letter-spacing: .3px; }
+.search-wrap { flex: 1; min-width: 150px; max-width: 500px; position: relative; }
+.search-wrap input {
+  width: 100%; height: 36px;
+  background: var(--bg); border: 1px solid var(--border2);
+  border-radius: 6px; padding: 0 12px 0 34px;
+  font-size: 13px; font-family: inherit; color: var(--text);
+  outline: none; transition: border-color .15s;
+}
+.search-wrap input::placeholder { color: var(--text3); }
+.search-wrap input:focus { border-color: var(--green); }
+.s-ico { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text3); font-size: 14px; pointer-events: none; }
+
+/* badge */
+.badge {
+  border-radius: 20px; padding: 3px 10px;
+  font-size: 12px; font-weight: 500; white-space: nowrap;
+}
+.badge-green { background: var(--green-dim); color: var(--green); }
+.badge-grey  { background: var(--surface2); color: var(--text2); }
+
+/* ── Tabs ── */
+.tabs {
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  display: flex; padding: 0 16px; overflow-x: auto;
+}
+.tab {
+  padding: 10px 14px 8px; font-size: 13px; color: var(--text2);
+  cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap;
+  transition: color .15s;
+}
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--green); border-bottom-color: var(--green); font-weight: 500; }
+
+/* ── Stats ── */
+.stats-line {
+  padding: 5px 16px; font-size: 12px; color: var(--text3);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+/* ── Result list ── */
+#list { max-width: 760px; padding: 0 16px 48px; background: var(--bg); }
+
+.result-item { padding: 14px 0 10px; border-bottom: 1px solid var(--border); }
+.result-item:hover {
+  background: var(--surface); margin: 0 -16px;
+  padding: 14px 16px 10px; border-radius: 6px;
+}
+
+/* read state */
+.result-item.is-read .r-title { color: var(--text3) !important; text-decoration: line-through; text-decoration-color: var(--read-line); }
+.result-item.is-read .r-url   { color: var(--text3); }
+.result-item.is-read .r-snip  { color: var(--text3); }
+
+.r-url-row { display: flex; align-items: center; gap: 5px; margin-bottom: 2px; }
+.r-fav { width: 14px; height: 14px; border-radius: 2px; flex-shrink: 0; }
+.r-url { font-size: 11px; color: var(--text2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.r-title {
+  font-size: 15px; color: var(--blue-link); text-decoration: none;
+  display: block; line-height: 1.4; word-break: break-word; cursor: pointer;
+}
+.r-title:hover { text-decoration: underline; text-decoration-color: var(--blue-link); }
+.r-snip { font-size: 13px; color: var(--text2); line-height: 1.55; margin-top: 4px; }
+.r-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 7px; }
+.r-tag  { font-size: 11px; background: #1a3a2a; color: var(--green); border-radius: 4px; padding: 2px 7px; }
+.r-date { font-size: 11px; color: var(--text3); }
+
+/* ── Checkmark button ── */
+.btn-check {
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border2);
+  background: transparent;
+  color: var(--text3);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  transition: border-color .15s, background .15s;
+  font-size: 13px;
+  padding: 0;
+}
+.btn-check:hover { border-color: var(--green); color: var(--green); }
+.btn-check.done  { border-color: var(--green); background: var(--green-dim); color: var(--green); cursor: default; }
+
+/* ── Highlight ── */
+mark {
+  background: var(--hl-bg);
+  color: var(--hl-color);
+  border-radius: 2px;
+  padding: 0 1px;
+  font-style: normal;
+}
+
+/* ── Loading / Empty ── */
+.msg { display: flex; flex-direction: column; align-items: center; padding: 60px 16px; color: var(--text2); gap: 12px; font-size: 14px; background: var(--bg); }
+.spinner { width: 26px; height: 26px; border: 2px solid var(--border2); border-top-color: var(--green); border-radius: 50%; animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Pagination ── */
+.pagination { display: flex; justify-content: center; align-items: center; gap: 3px; padding: 20px 16px; background: var(--bg); }
+.pg { min-width: 34px; height: 34px; border: 1px solid transparent; background: transparent; border-radius: 6px; font-size: 13px; color: var(--text2); cursor: pointer; padding: 0 6px; transition: .15s; }
+.pg:hover:not(.active):not(:disabled) { background: var(--surface2); color: var(--text); }
+.pg.active { background: var(--green); color: #000; font-weight: 500; border-color: var(--green); }
+.pg:disabled { color: var(--text3); cursor: default; }
+
+/* ── Mobile ── */
+@media (max-width: 540px) {
+  .topbar { padding: 8px 12px; }
+  #list { padding: 0 12px 40px; }
+  .r-title { font-size: 14px; }
+  .r-snip  { font-size: 12px; }
+  .tab { padding: 8px 10px 6px; font-size: 12px; }
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="logo">▶ ประมูลราชการ</span>
+  <div class="search-wrap">
+    <span class="s-ico">⌕</span>
+    <input type="text" id="q" placeholder="ค้นหาชื่อ หน่วยงาน URL..." oninput="applyFilter()">
+  </div>
+  <span class="badge badge-green" id="badge">...</span>
+</div>
+
+<div class="tabs">
+  <div class="tab active" data-tab="new"  onclick="switchTab(this,'new')">ยังไม่อ่าน</div>
+  <div class="tab"        data-tab="read" onclick="switchTab(this,'read')">อ่านแล้ว</div>
+</div>
+<div class="stats-line" id="stats-line">กำลังโหลด...</div>
+
+<div id="loading" class="msg"><div class="spinner"></div>กำลังโหลดข้อมูล...</div>
+<div id="empty"   class="msg" style="display:none">ไม่มีรายการ</div>
+<div id="list"    style="display:none"></div>
+<div class="pagination" id="pagination"></div>
+
+<script>
+// ══ CONFIG — แก้ค่าตรงนี้ ══
+const SB_URL = "https://YOUR_PROJECT.supabase.co";
+const SB_KEY = "YOUR_ANON_KEY";
+const TABLE  = "anytime_results";
+const PER    = 100;
+
+let poolNew  = [];
+let poolRead = [];
+let curTab   = "new";
+let curPage  = 1;
+let filtered = [];
+
+// ── Init ──
+async function init() {
+  const [rN, rR] = await Promise.all([
+    sbGet(`${SB_URL}/rest/v1/${TABLE}?status=eq.new&order=found_date.desc,id.desc&limit=3000`),
+    sbGet(`${SB_URL}/rest/v1/${TABLE}?status=eq.read&order=read_at.desc.nullslast&limit=1000`),
+  ]);
+  poolNew  = rN || [];
+  poolRead = rR || [];
+  updateBadge();
+  applyFilter();
+}
+
+async function sbGet(url) {
+  try {
+    const r = await fetch(url, { headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` } });
+    if (!r.ok) throw new Error(r.status);
+    return r.json();
+  } catch(e) {
+    document.getElementById("loading").innerHTML = `<span style="color:#e74c3c">โหลดไม่สำเร็จ: ${e.message}</span>`;
+    return null;
+  }
+}
+
+// ── Tab ──
+function switchTab(el, tab) {
+  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+  el.classList.add("active");
+  curTab = tab; curPage = 1;
+  document.getElementById("q").value = "";
+  applyFilter();
+}
+
+// ── Filter + highlight ──
+function applyFilter() {
+  const q   = (document.getElementById("q").value || "").trim();
+  const src = curTab === "new" ? poolNew : poolRead;
+  filtered  = q
+    ? src.filter(r => `${r.title} ${r.url} ${r.snippet} ${r.search_group}`.toLowerCase().includes(q.toLowerCase()))
+    : src;
+  curPage = 1;
+  render(q);
+}
+
+// ── Render ──
+function render(q) {
+  const loading = document.getElementById("loading");
+  const empty   = document.getElementById("empty");
+  const list    = document.getElementById("list");
+
+  loading.style.display = "none";
+
+  if (!filtered.length) {
+    empty.style.display = "flex"; list.style.display = "none";
+    document.getElementById("pagination").innerHTML = "";
+    document.getElementById("stats-line").textContent = "ไม่มีรายการ";
+    return;
+  }
+  empty.style.display = "none"; list.style.display = "block";
+
+  const start = (curPage - 1) * PER;
+  const slice = filtered.slice(start, start + PER);
+  const from  = start + 1;
+  const to    = Math.min(start + PER, filtered.length);
+  document.getElementById("stats-line").textContent =
+    `แสดง ${from}–${to} จาก ${filtered.length.toLocaleString()} รายการ`;
+
+  list.innerHTML = slice.map(r => itemHTML(r, q)).join("");
+  renderPager();
+}
+
+// ── Item HTML ──
+function itemHTML(r, q) {
+  const read = r.status === "read";
+  let shortUrl = r.url || "";
+  try { const u = new URL(r.url); shortUrl = u.hostname + (u.pathname !== "/" ? u.pathname.slice(0, 50) : ""); } catch(e) {}
+  const fav = `https://www.google.com/s2/favicons?sz=16&domain_url=${encodeURIComponent(r.url)}`;
+
+  const hiTitle = q ? highlight(r.title || "", q) : esc(r.title || "");
+  const hiSnip  = q ? highlight((r.snippet || "").slice(0, 220), q) : esc((r.snippet || "").slice(0, 220));
+
+  return `<div class="result-item${read ? " is-read" : ""}" id="item-${r.id}">
+    <div class="r-url-row">
+      <img class="r-fav" src="${fav}" alt="" loading="lazy" onerror="this.style.display='none'">
+      <span class="r-url">${esc(shortUrl)}</span>
+    </div>
+    <div style="display:flex;align-items:flex-start;gap:8px;margin-top:1px;">
+      <div style="flex:1;min-width:0;">
+        <a class="r-title" href="${esc(r.url)}" target="_blank" rel="noopener"
+           onclick="onLink(event,${r.id})">${hiTitle}</a>
+        ${r.snippet ? `<div class="r-snip">${hiSnip}${r.snippet.length > 220 ? "…" : ""}</div>` : ""}
+      </div>
+      <button id="btn-${r.id}"
+              class="btn-check${read ? " done" : ""}"
+              onclick="markRead(${r.id})"
+              title="${read ? "อ่านแล้ว" : "ทำเครื่องหมายอ่านแล้ว"}"
+              ${read ? "disabled" : ""}>✓</button>
+    </div>
+    <div class="r-meta">
+      ${r.search_group ? `<span class="r-tag">${esc(r.search_group)}</span>` : ""}
+      ${r.found_date   ? `<span class="r-date">${r.found_date}</span>` : ""}
+    </div>
+  </div>`;
+}
+
+// ── Highlight ──
+function highlight(text, q) {
+  if (!q) return esc(text);
+  const safe  = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const parts = esc(text).split(new RegExp(`(${esc(q).replace(/[.*+?^${}()|[\]\\]/g,"\\$&")})`, "gi"));
+  // ทำ highlight บน raw text แล้ว escape แต่ละส่วน
+  try {
+    const re = new RegExp(`(${safe})`, "gi");
+    return text.replace(re, m => `<mark>${esc(m)}</mark>`);
+  } catch(e) { return esc(text); }
+}
+
+// ── Click link → mark read ──
+function onLink(e, id) { markRead(id); }
+
+// ── Mark Read ──
+async function markRead(id) {
+  const idx = poolNew.findIndex(r => r.id === id);
+  if (idx === -1) return;
+  const item = poolNew[idx];
+  if (item.status === "read") return;
+
+  const now = new Date().toISOString();
+  item.status = "read"; item.read_at = now;
+
+  const el  = document.getElementById(`item-${id}`);
+  const btn = document.getElementById(`btn-${id}`);
+  if (el)  el.classList.add("is-read");
+  if (btn) { btn.className = "btn-check done"; btn.disabled = true; btn.title = "อ่านแล้ว"; }
+
+  poolNew.splice(idx, 1);
+  poolRead.unshift(item);
+  updateBadge();
+
+  fetch(`${SB_URL}/rest/v1/${TABLE}?id=eq.${id}`, {
+    method: "PATCH",
+    headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`,
+               "Content-Type": "application/json", Prefer: "return=minimal" },
+    body: JSON.stringify({ status: "read", read_at: now }),
+  }).catch(e => console.warn("patch:", e));
+}
+
+// ── Badge ──
+function updateBadge() {
+  const n = poolNew.length;
+  const b = document.getElementById("badge");
+  b.textContent = n > 0 ? `${n} ยังไม่อ่าน` : "✓ อ่านครบ";
+  b.className   = n > 0 ? "badge badge-green" : "badge badge-grey";
+}
+
+// ── Pagination ──
+function renderPager() {
+  const pages = Math.ceil(filtered.length / PER);
+  const pag   = document.getElementById("pagination");
+  if (pages <= 1) { pag.innerHTML = ""; return; }
+  const W = 2; let h = "";
+  h += `<button class="pg" onclick="goPage(${curPage-1})" ${curPage===1?"disabled":""}>‹</button>`;
+  for (let i = 1; i <= pages; i++) {
+    if (i===1||i===pages||(i>=curPage-W&&i<=curPage+W)) {
+      h += `<button class="pg${i===curPage?" active":""}" onclick="goPage(${i})">${i}</button>`;
+    } else if (i===curPage-W-1||i===curPage+W+1) {
+      h += `<button class="pg" disabled>…</button>`;
+    }
+  }
+  h += `<button class="pg" onclick="goPage(${curPage+1})" ${curPage===pages?"disabled":""}>›</button>`;
+  pag.innerHTML = h;
+}
+
+function goPage(n) {
+  const pages = Math.ceil(filtered.length / PER);
+  if (n < 1 || n > pages) return;
+  curPage = n; render(document.getElementById("q").value || "");
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+// ── Util ──
+function esc(s) {
+  return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+init();
+</script>
+</body>
+</html>
