@@ -63,7 +63,7 @@ VERB_SHORT — กลุ่ม 3-10 (หน่วยงาน+จังหวั
 
 ── กลุ่ม 2: คำกลาง_site.th (2 queries) ────────────────────
 ใช้: VERB_BROAD + site:.th + TRASH + TRASH_EXTRA + ปี
-ดึง: 3 หน้า × 10 ผล = 30 ผล/query = 3 credits/query
+ดึง: 10 หน้า × 10 ผล = 100 ผล/query = 10 credits/query
   (VERB_BROAD) site:.th (2568 OR 2569) + TRASH + TRASH_EXTRA
   (VERB_BROAD) filetype:pdf site:.th (2568 OR 2569) + TRASH + TRASH_EXTRA
 
@@ -121,12 +121,13 @@ VERB_SHORT — กลุ่ม 3-10 (หน่วยงาน+จังหวั
 ════════════════════════════════════════════════════════════
 
 กลุ่ม 1  : 2 queries × 10 pages =  20 credits
-กลุ่ม 2-10: 15 queries × 3 pages =  45 credits
+กลุ่ม 2  : 2 queries × 10 pages =  20 credits
+กลุ่ม 3-10: 13 queries × 3 pages =  39 credits
 ──────────────────────────────────────────────
-รวม/วัน       :  ~65 credits
-รวม/เดือน     : ~1,950 credits
+รวม/วัน       :  ~79 credits
+รวม/เดือน     : ~2,370 credits
 Serper Free   :  2,500 credits/เดือน
-เหลือสำรอง   :   ~550 credits  ✓
+เหลือสำรอง   :   ~130 credits  ⚠️ ใกล้ limit แนะนำ upgrade
 
 
 ════════════════════════════════════════════════════════════

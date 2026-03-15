@@ -229,8 +229,8 @@ def main():
 
     for group, queries in QUERIES.items():
         log.info(f"══ {group} ({len(queries)} queries) ══")
-        # กลุ่ม 1 ดึง 10 หน้า (100 ผล) — กลุ่มอื่นดึง 3 หน้า (30 ผล)
-        pages = 10 if group == "คำเจาะจง_ทุกเว็บ" else NUM_PAGES
+        # กลุ่ม 1-2 ดึง 10 หน้า (100 ผล) — กลุ่มอื่นดึง 3 หน้า (30 ผล)
+        pages = 10 if group in ("คำเจาะจง_ทุกเว็บ", "คำกลาง_site.th") else NUM_PAGES
 
         for query in queries:
             items = serper_search(query, max_pages=pages)
