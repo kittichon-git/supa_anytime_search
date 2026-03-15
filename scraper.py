@@ -44,8 +44,8 @@ NEXT_YEAR_BE = THIS_YEAR_BE + 1         # พ.ศ. 2569
 YR           = f"({THIS_YEAR_BE} OR {NEXT_YEAR_BE})"
 
 def yq(base: str) -> list[str]:
-    """คืน 2 query: แบบไม่มีปี + มีปีนี้+ปีที่แล้ว"""
-    return [base, f"{base} {YR}"]
+    """คืน 1 query: มีปี พ.ศ. เท่านั้น"""
+    return [f"{base} {YR}"]
 
 # ══════════════════════════════════════════════════════
 # เว็บขยะ — ใส่ใน query ทุกตัวที่ไม่ได้ระบุ site: เฉพาะ
