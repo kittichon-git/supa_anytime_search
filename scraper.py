@@ -51,11 +51,15 @@ def yq(base: str) -> list[str]:
 # เว็บขยะ — ใส่ใน query ทุกตัวที่ไม่ได้ระบุ site: เฉพาะ
 # ══════════════════════════════════════════════════════
 TRASH = (
-    "-site:led.go.th -site:youtube.com -site:x.com -site:instagram.com -site:tiktok.com "
-    "-บังคับคดี "
-    "-\"คู่มือ\" -\"แนวทาง\" -\"ขั้นตอน\" -\"ระเบียบ\" -\"หลักเกณฑ์\" "
-    "-\"แบบฟอร์ม\" -\"ตัวอย่าง\" -\"วิธีปฏิบัติ\" -\"คู่มือการปฏิบัติ\" "
-    "-\"แนวปฏิบัติ\" -\"ประกาศรับสมัคร\" -\"รับสมัคร\""
+    "-site:led.go.th -site:youtube.com -site:x.com -site:instagram.com -site:tiktok.com"
+)
+
+# negative keywords แยกออกมา — ใช้เฉพาะ query กลุ่ม 1-2 ที่ไม่มี VERB_ALL กรองอยู่แล้ว
+TRASH_EXTRA = (
+    " -บังคับคดี"
+    " -\"คู่มือ\" -\"แนวทาง\" -\"ขั้นตอน\" -\"ระเบียบ\" -\"หลักเกณฑ์\""
+    " -\"แบบฟอร์ม\" -\"ตัวอย่าง\" -\"วิธีปฏิบัติ\" -\"คู่มือการปฏิบัติ\""
+    " -\"แนวปฏิบัติ\""
 )
 
 # ══════════════════════════════════════════════════════
@@ -64,17 +68,16 @@ TRASH = (
 # คำเจาะจง (specific) — ค้นทุกเว็บ ไม่จำกัด site
 VERB_SPECIFIC = (
     '"ขายทอดตลาด" OR "โดยวิธีขายทอดตลาด" OR "ขายทอดตลาดพัสดุ" OR '
-    '"ขายทอดตลาดครุภัณฑ์" OR "ขายทอดตลาดรถยนต์" OR "ขายทอดตลาดอาคาร" OR '
+    '"ขายทอดตลาดครุภัณฑ์" OR '
     '"ไม่จำเป็นต้องใช้ในราชการ" OR "พัสดุชำรุดเสื่อมสภาพ"'
 )
 
 # คำกลาง (broad) — ใช้กับ site:.th เพื่อกรองให้แคบลง
 VERB_BROAD = (
     '"จำหน่ายพัสดุ" OR "จำหน่ายครุภัณฑ์" OR "จำหน่ายพัสดุชำรุด" OR '
-    '"จำหน่ายครุภัณฑ์ชำรุด" OR "ระบายพัสดุ" OR "ระบายครุภัณฑ์" OR '
-    '"จำหน่ายทรัพย์สิน" OR "ขายทรัพย์สิน" OR "ประมูลขาย" OR "เปิดประมูลขาย" OR '
+    '"จำหน่ายครุภัณฑ์ชำรุด" OR '
     '"จำหน่ายของเสื่อมสภาพ" OR "จำหน่ายพัสดุเสื่อมสภาพ" OR '
-    '"จำหน่ายครุภัณฑ์เสื่อมสภาพ" OR "จำหน่ายสิ่งของที่ไม่ใช้แล้ว" OR "ระบายทรัพย์สิน"'
+    '"จำหน่ายครุภัณฑ์เสื่อมสภาพ" OR "จำหน่ายสิ่งของที่ไม่ใช้แล้ว"'
 )
 
 # คำกลาง full (specific + broad รวมกัน) สำหรับกลุ่มหน่วยงานและจังหวัด
@@ -87,7 +90,12 @@ VERB_ALL = (
     '"จำหน่ายของเสื่อมสภาพ" OR "จำหน่ายพัสดุเสื่อมสภาพ" OR "ประมูลขาย"'
 )
 
-# ── จังหวัด รายภูมิภาค ──
+# คำย่อ (short) — ใช้กับกลุ่มจังหวัด+หน่วยงาน เพื่อไม่ให้ query เกิน 32 คำ
+VERB_SHORT = (
+    '"ขายทอดตลาด" OR "ขายทอดตลาดพัสดุ" OR "ขายทอดตลาดครุภัณฑ์" OR '
+    '"จำหน่ายพัสดุ" OR "จำหน่ายครุภัณฑ์" OR '
+    '"ไม่จำเป็นต้องใช้ในราชการ" OR "พัสดุชำรุดเสื่อมสภาพ"'
+)
 P_NORTH  = "เชียงใหม่ OR เชียงราย OR น่าน OR พะเยา OR แพร่ OR แม่ฮ่องสอน OR ลำปาง OR ลำพูน OR อุตรดิตถ์"
 P_NORTH2 = "พิษณุโลก OR สุโขทัย OR กำแพงเพชร OR ตาก OR เพชรบูรณ์ OR พิจิตร OR นครสวรรค์ OR อุทัยธานี OR ชัยนาท"
 P_NE     = "กาฬสินธุ์ OR ขอนแก่น OR ชัยภูมิ OR นครพนม OR นครราชสีมา OR โคราช OR บึงกาฬ OR บุรีรัมย์ OR มหาสารคาม OR มุกดาหาร"
@@ -105,62 +113,52 @@ QUERIES: dict[str, list[str]] = {
     # ─── กลุ่ม 1: คำเจาะจง — ค้นทุกเว็บ (ไม่จำกัด site) ───
     # คำพวกนี้เฉพาะเจาะจงพอ ไม่ต้องระบุ site
     "คำเจาะจง_ทุกเว็บ": [
-        *yq(f'({VERB_SPECIFIC}) {TRASH}'),
-        # + PDF
-        *yq(f'({VERB_SPECIFIC}) filetype:pdf {TRASH}'),
+        *yq(f'({VERB_SPECIFIC}) {TRASH}{TRASH_EXTRA}'),
+        *yq(f'({VERB_SPECIFIC}) filetype:pdf {TRASH}{TRASH_EXTRA}'),
     ],
 
-    # ─── กลุ่ม 2: คำกลาง — จำกัด site:.th ──────────────────
-    # คำกว้างต้องจำกัด domain ไม่งั้นได้ขยะเยอะ
     "คำกลาง_site.th": [
-        *yq(f'({VERB_BROAD}) site:.th {TRASH}'),
-        *yq(f'({VERB_BROAD}) filetype:pdf site:.th {TRASH}'),
+        *yq(f'({VERB_BROAD}) site:.th {TRASH}{TRASH_EXTRA}'),
+        *yq(f'({VERB_BROAD}) filetype:pdf site:.th {TRASH}{TRASH_EXTRA}'),
     ],
 
     # ─── กลุ่ม 3: หน่วยงานราชการ + ชุดคำเต็ม ───────────────
     "โรงพยาบาล_สาธารณสุข": [
-        *yq(f'({VERB_ALL}) ("โรงพยาบาล" OR "สาธารณสุขจังหวัด" OR "สาธารณสุขอำเภอ" OR "ควบคุมโรค" OR "สำนักงานสาธารณสุข") {TRASH}'),
+        *yq(f'({VERB_SHORT}) ("โรงพยาบาล" OR "สาธารณสุขจังหวัด" OR "สาธารณสุขอำเภอ" OR "ควบคุมโรค" OR "สำนักงานสาธารณสุข") {TRASH}'),
     ],
 
     "ท้องถิ่น": [
-        *yq(f'({VERB_ALL}) ("อบต" OR "เทศบาลตำบล" OR "เทศบาลเมือง" OR "เทศบาลนคร" OR "อบจ" OR "องค์การบริหารส่วน") {TRASH}'),
+        *yq(f'({VERB_SHORT}) ("อบต" OR "เทศบาลตำบล" OR "เทศบาลเมือง" OR "เทศบาลนคร" OR "อบจ" OR "องค์การบริหารส่วน") {TRASH}'),
     ],
 
     "การศึกษา": [
-        *yq(f'({VERB_ALL}) ("มหาวิทยาลัย" OR "ราชภัฎ" OR "ราชมงคล" OR "วิทยาลัยเทคนิค" OR "วิทยาลัยอาชีวศึกษา" OR "สพป" OR "สพม" OR "เขตพื้นที่การศึกษา" OR "โรงเรียน") {TRASH}'),
-        *yq(f'({VERB_ALL}) site:.ac.th {TRASH}'),
+        *yq(f'({VERB_SHORT}) ("มหาวิทยาลัย" OR "ราชภัฎ" OR "ราชมงคล" OR "วิทยาลัยเทคนิค" OR "วิทยาลัยอาชีวศึกษา" OR "สพป" OR "สพม" OR "เขตพื้นที่การศึกษา" OR "โรงเรียน") {TRASH}'),
+        *yq(f'({VERB_SHORT}) site:.ac.th {TRASH}'),
     ],
 
-    "ความมั่นคง": [
-        *yq(f'({VERB_ALL}) ("ตำรวจภูธร" OR "ตำรวจนครบาล" OR "กองบัญชาการ" OR "กองทัพบก" OR "กองทัพเรือ" OR "กองทัพอากาศ" OR "กรมทหาร" OR "กองพล") {TRASH}'),
-        *yq(f'({VERB_ALL}) (site:rta.mi.th OR site:rtaf.mi.th OR site:navy.mi.th)'),
+    "ชื่อหน่วยงาน": [
+        *yq(f'({VERB_SHORT}) ("สำนักงาน" OR "จังหวัด" OR "โรงเรียน" OR "กรม" OR "กอง" OR "สำนัก" OR "ศูนย์" OR "องค์การ" OR "องค์กร") site:.th {TRASH}'),
     ],
 
-    "กระทรวง_กรม": [
-        *yq(f'({VERB_ALL}) ("เรือนจำ" OR "กรมราชทัณฑ์" OR "สถานพินิจ" OR "คุมประพฤติ" OR "กรมพัฒนาที่ดิน" OR "กรมโยธาธิการ" OR "กรมทางหลวงชนบท" OR "กรมการแพทย์") {TRASH}'),
-        *yq(f'({VERB_ALL}) ("สรรพากร" OR "สรรพสามิต" OR "ปปส" OR "ปปง" OR "กรมบัญชีกลาง" OR "กรมพัฒนาธุรกิจ" OR "กรมส่งเสริมการเกษตร") {TRASH}'),
-    ],
-
-    # ─── กลุ่ม 4: จังหวัด + ชุดคำเต็ม ──────────────────────
-    # ใช้ VERB_ALL เหมือนกลุ่มหน่วยงาน + จำกัด site:.th
+    # ─── กลุ่ม 4: จังหวัด + VERB_SHORT ──────────────────────
     "จังหวัด_เหนือ": [
-        *yq(f'({VERB_ALL}) ({P_NORTH}) site:.th {TRASH}'),
-        *yq(f'({VERB_ALL}) ({P_NORTH2}) site:.th {TRASH}'),
+        *yq(f'({VERB_SHORT}) ({P_NORTH}) site:.th {TRASH}'),
+        *yq(f'({VERB_SHORT}) ({P_NORTH2}) site:.th {TRASH}'),
     ],
 
     "จังหวัด_อีสาน": [
-        *yq(f'({VERB_ALL}) ({P_NE}) site:.th {TRASH}'),
-        *yq(f'({VERB_ALL}) ({P_NE2}) site:.th {TRASH}'),
+        *yq(f'({VERB_SHORT}) ({P_NE}) site:.th {TRASH}'),
+        *yq(f'({VERB_SHORT}) ({P_NE2}) site:.th {TRASH}'),
     ],
 
     "จังหวัด_กลาง_ตะวันออก_ตะวันตก": [
-        *yq(f'({VERB_ALL}) ({P_CEN}) site:.th {TRASH}'),
-        *yq(f'({VERB_ALL}) ({P_EAST}) site:.th {TRASH}'),
-        *yq(f'({VERB_ALL}) ({P_WEST}) site:.th {TRASH}'),
+        *yq(f'({VERB_SHORT}) ({P_CEN}) site:.th {TRASH}'),
+        *yq(f'({VERB_SHORT}) ({P_EAST}) site:.th {TRASH}'),
+        *yq(f'({VERB_SHORT}) ({P_WEST}) site:.th {TRASH}'),
     ],
 
     "จังหวัด_ใต้": [
-        *yq(f'({VERB_ALL}) ({P_SOUTH}) site:.th {TRASH}'),
+        *yq(f'({VERB_SHORT}) ({P_SOUTH}) site:.th {TRASH}'),
     ],
 }
 
@@ -183,10 +181,10 @@ def make_content_hash(url: str, title: str) -> str:
 # ══════════════════════════════════════════════════════
 # SERPER  —  ยิง 1 query, ดึง 100 รายการ
 # ══════════════════════════════════════════════════════
-def serper_search(query: str) -> list[dict]:
-    """ดึงผล 3 หน้า (30 รายการ) ต่อ query — ใช้ 3 credits"""
+def serper_search(query: str, max_pages: int = NUM_PAGES) -> list[dict]:
+    """ดึงผลการค้นหาตามจำนวนหน้าที่กำหนด"""
     all_items = []
-    for page in range(1, NUM_PAGES + 1):
+    for page in range(1, max_pages + 1):
         try:
             resp = requests.post(
                 "https://google.serper.dev/search",
@@ -199,8 +197,8 @@ def serper_search(query: str) -> list[dict]:
             items = resp.json().get("organic", [])
             all_items.extend(items)
             if len(items) < NUM_RESULTS:
-                break          # หน้าสุดท้ายแล้ว ไม่ต้องดึงต่อ
-            time.sleep(0.3)    # หน่วงเล็กน้อยระหว่างหน้า
+                break
+            time.sleep(0.3)
         except Exception as e:
             log.warning(f"Serper error page={page} [{query[:50]}]: {e}")
             break
@@ -231,9 +229,11 @@ def main():
 
     for group, queries in QUERIES.items():
         log.info(f"══ {group} ({len(queries)} queries) ══")
+        # กลุ่ม 1 ดึง 10 หน้า (100 ผล) — กลุ่มอื่นดึง 3 หน้า (30 ผล)
+        pages = 10 if group == "คำเจาะจง_ทุกเว็บ" else NUM_PAGES
 
         for query in queries:
-            items = serper_search(query)
+            items = serper_search(query, max_pages=pages)
             rows  = []
 
             for item in items:
