@@ -194,7 +194,7 @@ let filtered = [];
 async function init() {
   const [rN, rR] = await Promise.all([
     sbGetAll(`${SB_URL}/rest/v1/${TABLE}?status=eq.new&order=url.asc,found_date.desc`),
-    sbGetAll(`${SB_URL}/rest/v1/${TABLE}?status=eq.read&order=url.asc`),
+    sbGet(`${SB_URL}/rest/v1/${TABLE}?status=eq.read&order=read_at.desc&limit=1000`),
   ]);
   poolNew  = rN || [];
   poolRead = rR || [];
