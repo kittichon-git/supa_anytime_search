@@ -18,11 +18,7 @@ Budget: 700 credits/วัน (Serper plan ปัจจุบัน)
   L: Facebook                 =  5 cr
   รวม: ~240 credits  เหลือ buffer ~460
 
-การรันด้วยมือบนเครื่อง:
-  export SERPER_API_KEY="5f53f80a3c330ef18f42629073dc70f312ae3ade"
-  export SUPABASE_URL="https://pfnhxozecazjxjgpfrzu.supabase.co/rest/v1/"
-  export SUPABASE_KEY="sb_publishable_9idaI5irCf8jia0qABYyhA_P5VoRRBo"
-  python scraper_v4.py
+
 
 หมายเหตุ dedup:
   content_hash = SHA256(normalize_url(url) + "|" + clean_snippet(snippet))
