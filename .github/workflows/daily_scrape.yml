@@ -29,4 +29,4 @@ jobs:
           SERPER_API_KEY: ${{ secrets.SERPER_API_KEY }}
           SUPABASE_URL:   ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY:   ${{ secrets.SUPABASE_KEY }}
-        run: python scraper_v2.py
+        run: python scraper_v4.py
