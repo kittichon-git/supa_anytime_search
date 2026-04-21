@@ -24,10 +24,10 @@
   --link-vis:  #6639ba;
   --hl-bg:     #fff8c5;
   --hl-color:  #7d4e00;
-  --read-color:#656d76;
+  --red:       #cf222e;
+  --red-bg:    #ffebe9;
   --tag-bg:    #ddf4ff;
   --tag-color: #0550ae;
-  --red:       #cf222e;
 }
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: 'Sarabun', -apple-system, sans-serif; font-size: 16px; background: var(--bg); color: var(--text); line-height: 1.6; }
@@ -35,10 +35,8 @@ body { font-family: 'Sarabun', -apple-system, sans-serif; font-size: 16px; backg
 /* ── Top bar ── */
 .topbar {
   position: sticky; top: 0; z-index: 100;
-  background: var(--bg2);
-  border-bottom: 1px solid var(--border);
-  padding: 10px 16px;
-  display: flex; justify-content: center;
+  background: var(--bg2); border-bottom: 1px solid var(--border);
+  padding: 10px 16px; display: flex; justify-content: center;
 }
 .topbar-inner {
   width: 100%; max-width: 780px;
@@ -58,7 +56,6 @@ body { font-family: 'Sarabun', -apple-system, sans-serif; font-size: 16px; backg
 .search-wrap input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(9,105,218,.15); }
 .s-ico { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); color: var(--text3); width: 16px; height: 16px; pointer-events: none; }
 
-/* badge */
 .badge { border-radius: 20px; padding: 2px 10px; font-size: 12px; font-weight: 500; white-space: nowrap; border: 1px solid transparent; }
 .badge-red  { background: #ffebe9; color: var(--red); border-color: #ffcecb; }
 .badge-grey { background: var(--bg3); color: var(--text2); border-color: var(--border); }
@@ -83,11 +80,8 @@ body { font-family: 'Sarabun', -apple-system, sans-serif; font-size: 16px; backg
 
 /* read state */
 .result-item.is-read {
-  background: #f6f8fa;
-  border-radius: 6px;
-  margin: 0 -16px;
-  padding: 14px 16px 11px;
-  opacity: 0.55;
+  background: #f6f8fa; border-radius: 6px;
+  margin: 0 -16px; padding: 14px 16px 11px; opacity: 0.55;
 }
 .result-item.is-read .r-title { color: var(--text3) !important; text-decoration: line-through; text-decoration-color: var(--border2); font-weight: 400; }
 .result-item.is-read .r-url,
@@ -109,22 +103,32 @@ body { font-family: 'Sarabun', -apple-system, sans-serif; font-size: 16px; backg
 .r-title.clicked  { color: #e57373 !important; }
 .r-snip { font-size: 15px; color: var(--text2); line-height: 1.58; margin-top: 5px; }
 .r-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 7px; }
-.r-tag { font-size: 12px; background: var(--tag-bg); color: var(--tag-color); border-radius: 20px; padding: 2px 10px; border: 1px solid #b6e3ff; }
+.r-tag  { font-size: 12px; background: var(--tag-bg); color: var(--tag-color); border-radius: 20px; padding: 2px 10px; border: 1px solid #b6e3ff; }
 .r-date { font-size: 13px; color: var(--text3); }
+.r-upd  { font-size: 12px; background: #fff8c5; color: #7d4e00; border-radius: 20px; padding: 2px 10px; border: 1px solid #e5c000; }
 
-/* ── Highlight ── */
 mark { background: var(--hl-bg); color: var(--hl-color); border-radius: 2px; padding: 0 1px; font-style: normal; }
 
-/* ── Check button ── */
+/* ── Action buttons ── */
+.r-actions { display: flex; flex-direction: column; gap: 4px; flex-shrink: 0; margin-top: 2px; }
 .btn-check {
-  width: 48px; height: 48px; border-radius: 50%;
+  width: 40px; height: 40px; border-radius: 50%;
   border: 1.5px solid var(--border); background: var(--bg);
   color: var(--text3); cursor: pointer; flex-shrink: 0;
   display: flex; align-items: center; justify-content: center;
-  font-size: 20px; transition: .15s; margin-top: 2px;
+  font-size: 18px; transition: .15s;
 }
 .btn-check:hover { border-color: var(--green); color: var(--green); background: var(--green-bg); }
 .btn-check.done  { border-color: var(--green); color: var(--green); background: var(--green-bg); cursor: default; }
+.btn-action {
+  width: 40px; height: 40px; border-radius: 50%;
+  border: 1.5px solid var(--border); background: var(--bg);
+  color: var(--text3); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; transition: .15s;
+}
+.btn-trash:hover  { border-color: var(--red); color: var(--red); background: var(--red-bg); }
+.btn-block:hover  { border-color: #8250df; color: #8250df; background: #fbefff; }
 
 /* ── Loading / Empty ── */
 .msg { display: flex; flex-direction: column; align-items: center; padding: 60px 16px; color: var(--text2); gap: 12px; font-size: 14px; }
@@ -138,7 +142,6 @@ mark { background: var(--hl-bg); color: var(--hl-color); border-radius: 2px; pad
 .pg.active { background: var(--blue); color: #fff; border-color: var(--blue); font-weight: 500; }
 .pg:disabled { color: var(--text3); cursor: default; }
 
-/* ── Mobile ── */
 @media (max-width: 540px) {
   .topbar { padding: 8px 12px; }
   #list { padding: 0 12px 40px; }
@@ -165,8 +168,11 @@ mark { background: var(--hl-bg); color: var(--hl-color); border-radius: 2px; pad
 </div>
 
 <div class="tabs">
-  <div class="tab active" data-tab="new"  onclick="switchTab(this,'new')">
+  <div class="tab active" data-tab="new" onclick="switchTab(this,'new')">
     ยังไม่อ่าน <span class="tab-count" id="cnt-new">0</span>
+  </div>
+  <div class="tab" data-tab="update" onclick="switchTab(this,'update')">
+    อัปเดต <span class="tab-count" id="cnt-update">0</span>
   </div>
   <div class="tab" data-tab="read" onclick="switchTab(this,'read')">
     อ่านแล้ว <span class="tab-count" id="cnt-read">0</span>
@@ -183,25 +189,31 @@ mark { background: var(--hl-bg); color: var(--hl-color); border-radius: 2px; pad
 const SB_URL = "https://pfnhxozecazjxjgpfrzu.supabase.co";
 const SB_KEY = "sb_publishable_9idaI5irCf8jia0qABYyhA_P5VoRRBo";
 const TABLE  = "anytime_results";
+const BL_TBL = "anytime_domain_blacklist";
 const PER    = 100;
 
-let poolNew  = [];
-let poolRead = [];
-let curTab   = "new";
-let curPage  = 1;
-let filtered = [];
+let poolNew    = [];
+let poolUpdate = [];
+let poolRead   = [];
+let curTab     = "new";
+let curPage    = 1;
+let filtered   = [];
 
+// ── Init ──────────────────────────────────────────────────────────────────────
 async function init() {
-  const [rN, rR] = await Promise.all([
-    sbGetAll(`${SB_URL}/rest/v1/${TABLE}?status=eq.new&order=url.asc,found_date.desc`),
+  const [rN, rU, rR] = await Promise.all([
+    sbGetAll(`${SB_URL}/rest/v1/${TABLE}?status=eq.new&order=found_date.desc`),
+    sbGet(`${SB_URL}/rest/v1/${TABLE}?status=eq.update&order=updated_at.desc&limit=1000`),
     sbGet(`${SB_URL}/rest/v1/${TABLE}?status=eq.read&order=read_at.desc&limit=1000`),
   ]);
-  poolNew  = rN || [];
-  poolRead = rR || [];
+  poolNew    = rN || [];
+  poolUpdate = rU || [];
+  poolRead   = rR || [];
   updateCounts();
   applyFilter();
 }
 
+// ── Supabase fetch ────────────────────────────────────────────────────────────
 async function sbGet(url) {
   try {
     const r = await fetch(url, { headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` } });
@@ -228,6 +240,18 @@ async function sbGetAll(baseUrl) {
   return all;
 }
 
+async function sbPatch(filter, body) {
+  return fetch(`${SB_URL}/rest/v1/${TABLE}?${filter}`, {
+    method: "PATCH",
+    headers: {
+      apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`,
+      "Content-Type": "application/json", Prefer: "return=minimal",
+    },
+    body: JSON.stringify(body),
+  }).catch(e => console.warn("patch:", e));
+}
+
+// ── Tabs ─────────────────────────────────────────────────────────────────────
 function switchTab(el, tab) {
   document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
   el.classList.add("active");
@@ -236,9 +260,16 @@ function switchTab(el, tab) {
   applyFilter();
 }
 
+function getPool() {
+  if (curTab === "new")    return poolNew;
+  if (curTab === "update") return poolUpdate;
+  return poolRead;
+}
+
+// ── Filter ────────────────────────────────────────────────────────────────────
 function applyFilter() {
   const q   = (document.getElementById("q").value || "").trim();
-  const src = curTab === "new" ? poolNew : poolRead;
+  const src = getPool();
   filtered  = q
     ? src.filter(r => `${r.title} ${r.url} ${r.snippet} ${r.search_group}`.toLowerCase().includes(q.toLowerCase()))
     : src;
@@ -246,6 +277,7 @@ function applyFilter() {
   render(q);
 }
 
+// ── Render ────────────────────────────────────────────────────────────────────
 function render(q) {
   const loading = document.getElementById("loading");
   const empty   = document.getElementById("empty");
@@ -268,13 +300,31 @@ function render(q) {
   renderPager();
 }
 
+// ── Item HTML ─────────────────────────────────────────────────────────────────
+const DEFAULT_HL_WORDS = [
+  "ขายทอดตลาด","ขายทอดตลาดพัสดุ","ขายทอดตลาดครุภัณฑ์","ประกาศขายทอดตลาด",
+  "จำหน่ายพัสดุ","จำหน่ายครุภัณฑ์","ระบายพัสดุ","ไม่จำเป็นต้องใช้ในราชการ",
+  "พัสดุชำรุดเสื่อมสภาพ","จำหน่ายโดยวิธีประมูล"
+];
+const DEFAULT_HL_RE = new RegExp(
+  `(${DEFAULT_HL_WORDS.map(w => w.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")).join("|")})`, "gi"
+);
+
 function itemHTML(r, q) {
-  const read = r.status === "read";
+  const read = (r.status === "read");
+  const isUpdate = (r.status === "update");
   let shortUrl = r.url || "";
   try { const u = new URL(r.url); shortUrl = u.hostname + (u.pathname !== "/" ? u.pathname.slice(0,60) : ""); } catch(e) {}
-  const fav = `https://www.google.com/s2/favicons?sz=16&domain_url=${encodeURIComponent(r.url)}`;
-  const hiTitle = hlText(r.title || "", q);
-  const hiSnip  = hlText((r.snippet || "").slice(0, 240), q);
+  const fav      = `https://www.google.com/s2/favicons?sz=16&domain_url=${encodeURIComponent(r.url)}`;
+  const hiTitle  = hlText(r.title || "", q);
+  // แสดง snippet_long ถ้ามี ไม่งั้น snippet ปกติ
+  const snipSrc  = (r.snippet_long && r.snippet_long.trim()) ? r.snippet_long : (r.snippet || "");
+  const hiSnip   = hlText(snipSrc.slice(0, 400), q);
+  const snipFull = snipSrc.length > 400;
+
+  const showRead  = !read;
+  const showTrash = true;
+  const showBlock = true;
 
   return `<div class="result-item${read?" is-read":""}" id="item-${r.id}">
     <div class="r-url-row">
@@ -286,34 +336,43 @@ function itemHTML(r, q) {
         <a class="r-title" href="${esc(r.url)}" target="_blank" rel="noopener"
            onclick="onLink(event,${r.id})" data-hl="${encodeURIComponent(hiTitle)}"
            data-url="${esc(r.url)}">${esc(r.title||"")}</a>
-        ${r.snippet ? `<div class="r-snip" data-hl="${encodeURIComponent(hiSnip)}">${esc((r.snippet||"").slice(0,240))}${(r.snippet||"").length>240?"…":""}</div>` : ""}
+        ${snipSrc ? `<div class="r-snip" data-hl="${encodeURIComponent(hiSnip)}">${esc(snipSrc.slice(0,400))}${snipFull?"…":""}</div>` : ""}
         <div class="r-meta">
+          ${isUpdate ? `<span class="r-upd">🔄 อัปเดต</span>` : ""}
           ${r.search_group ? `<span class="r-tag">${esc(r.search_group)}</span>` : ""}
           ${r.found_date   ? `<span class="r-date">${r.found_date}</span>` : ""}
         </div>
       </div>
-      <button id="btn-${r.id}" class="btn-check${read?" done":""}"
-              onclick="markRead(${r.id})"
-              title="${read?"อ่านแล้ว":"ทำเครื่องหมายอ่านแล้ว"}"
-              ${read?"disabled":""}>✓</button>
+      <div class="r-actions">
+        ${showRead  ? `<button id="btn-${r.id}" class="btn-check${read?" done":""}"
+                         onclick="markRead(${r.id})" title="ทำเครื่องหมายอ่านแล้ว"
+                         ${read?"disabled":""}>✓</button>` : ""}
+        ${showTrash ? `<button class="btn-action btn-trash" onclick="trashItem(${r.id})"
+                         title="Trash — ไม่ต้องการ">🗑️</button>` : ""}
+        ${showBlock ? `<button class="btn-action btn-block"
+                         onclick="blockDomain(${r.id},'${esc(getHostname(r.url))}')"
+                         title="Block domain นี้ทั้งหมด">🚫</button>` : ""}
+      </div>
     </div>
   </div>`;
 }
 
-// ── คำสำคัญที่ highlight ตอน load ครั้งแรก (ไม่ต้องพิมพ์) ──
-const DEFAULT_HL_WORDS = [
-  "ขายทอดตลาด","โดยวิธีขายทอดตลาด","ขายทอดตลาดพัสดุ","ขายทอดตลาดครุภัณฑ์",
-  "ขายทอดตลาดรถยนต์","ขายทอดตลาดอาคาร","จำหน่ายพัสดุ","จำหน่ายครุภัณฑ์",
-  "จำหน่ายพัสดุชำรุด","จำหน่ายครุภัณฑ์ชำรุด","ระบายพัสดุ","ระบายครุภัณฑ์",
-  "จำหน่ายทรัพย์สิน","ไม่จำเป็นต้องใช้ในราชการ","พัสดุชำรุดเสื่อมสภาพ",
-  "จำหน่ายของเสื่อมสภาพ","จำหน่ายพัสดุเสื่อมสภาพ","ประมูลขาย","ระบายทรัพย์สิน"
-];
+function getHostname(url) {
+  try { const h = new URL(url).hostname.toLowerCase(); return h.startsWith("www.") ? h.slice(4) : h; }
+  catch(e) { return ""; }
+}
 
-// สร้าง regex รวมคำทั้งหมด (ใช้ซ้ำได้เร็ว)
-const DEFAULT_HL_RE = new RegExp(
-  `(${DEFAULT_HL_WORDS.map(w => w.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")).join("|")})`,
-  "gi"
-);
+// ── Highlight ─────────────────────────────────────────────────────────────────
+function hlText(text, q) {
+  if (!text) return "";
+  const re = (q && q.trim())
+    ? new RegExp(`(${q.trim().replace(/[.*+?^${}()|[\]\\]/g,"\\$&")})`, "gi")
+    : DEFAULT_HL_RE;
+  try {
+    return text.split(re).map((p, i) => i % 2 === 1 ? `<mark>${esc(p)}</mark>` : esc(p)).join("");
+  } catch(e) { return esc(text); }
+}
+
 function applyHighlights() {
   document.querySelectorAll("[data-hl]").forEach(el => {
     el.innerHTML = decodeURIComponent(el.getAttribute("data-hl"));
@@ -321,35 +380,17 @@ function applyHighlights() {
   });
 }
 
-// ── Highlight: split text by query, escape each part, wrap match with <mark> ──
-function hlText(text, q) {
-  if (!text) return "";
-  // ถ้าไม่มีคำค้นหา ใช้ DEFAULT_HL_WORDS แทน
-  const re = (q && q.trim())
-    ? new RegExp(`(${q.trim().replace(/[.*+?^${}()|[\]\\]/g,"\\$&")})`, "gi")
-    : DEFAULT_HL_RE;
-  try {
-    const parts = text.split(re);
-    return parts.map((p, i) => i % 2 === 1 ? `<mark>${esc(p)}</mark>` : esc(p)).join("");
-  } catch(e) { return esc(text); }
-}
-
-// ── Track clicked URLs (localStorage) ──
+// ── Clicked URL tracking ──────────────────────────────────────────────────────
 const CLICKED_KEY = "auction_clicked_urls";
-
 function getClickedUrls() {
-  try { return new Set(JSON.parse(localStorage.getItem(CLICKED_KEY) || "[]")); }
-  catch(e) { return new Set(); }
+  try { return new Set(JSON.parse(localStorage.getItem(CLICKED_KEY) || "[]")); } catch(e) { return new Set(); }
 }
-
 function saveClickedUrl(url) {
   try {
-    const set = getClickedUrls();
-    set.add(url);
+    const set = getClickedUrls(); set.add(url);
     localStorage.setItem(CLICKED_KEY, JSON.stringify([...set].slice(-2000)));
   } catch(e) {}
 }
-
 function applyClickedColors() {
   const clicked = getClickedUrls();
   document.querySelectorAll("a.r-title[data-url]").forEach(el => {
@@ -358,16 +399,17 @@ function applyClickedColors() {
 }
 
 function onLink(e, id) {
-  // หา URL จาก poolNew หรือ poolRead
-  const item = [...poolNew, ...poolRead].find(r => r.id === id);
+  const item = [...poolNew, ...poolUpdate, ...poolRead].find(r => r.id === id);
   if (item) saveClickedUrl(item.url);
-  markRead(id);
+  if (curTab !== "read") markRead(id);
 }
 
+// ── Actions ───────────────────────────────────────────────────────────────────
 async function markRead(id) {
-  const idx = poolNew.findIndex(r => r.id === id);
+  const pool = curTab === "update" ? poolUpdate : poolNew;
+  const idx  = pool.findIndex(r => r.id === id);
   if (idx === -1) return;
-  const item = poolNew[idx];
+  const item = pool[idx];
   if (item.status === "read") return;
   const now = new Date().toISOString();
   item.status = "read"; item.read_at = now;
@@ -375,30 +417,86 @@ async function markRead(id) {
   const el  = document.getElementById(`item-${id}`);
   const btn = document.getElementById(`btn-${id}`);
   if (el)  el.classList.add("is-read");
-  if (btn) { btn.className = "btn-check done"; btn.disabled = true; btn.title = "อ่านแล้ว"; }
+  if (btn) { btn.className = "btn-check done"; btn.disabled = true; }
 
-  poolNew.splice(idx, 1);
+  pool.splice(idx, 1);
   poolRead.unshift(item);
   updateCounts();
 
-  fetch(`${SB_URL}/rest/v1/${TABLE}?id=eq.${id}`, {
+  sbPatch(`id=eq.${id}`, { status: "read", read_at: now });
+}
+
+async function trashItem(id) {
+  if (!confirm("Trash รายการนี้? จะไม่แสดงอีก")) return;
+  // ลบจากทุก pool
+  [poolNew, poolUpdate, poolRead].forEach(pool => {
+    const i = pool.findIndex(r => r.id === id);
+    if (i !== -1) pool.splice(i, 1);
+  });
+  const el = document.getElementById(`item-${id}`);
+  if (el) el.remove();
+  updateCounts();
+  applyFilter();
+  sbPatch(`id=eq.${id}`, { status: "trash" });
+}
+
+async function blockDomain(id, domain) {
+  if (!domain) return;
+  if (!confirm(`Block ทุก URL จาก "${domain}"? จะถูก trash ทั้งหมด`)) return;
+
+  // ลบ items ของ domain ออกจากทุก pool
+  [poolNew, poolUpdate, poolRead].forEach(pool => {
+    for (let i = pool.length - 1; i >= 0; i--) {
+      if (getHostname(pool[i].url) === domain) pool.splice(i, 1);
+    }
+  });
+  document.querySelectorAll(".result-item").forEach(el => {
+    const a = el.querySelector("a.r-title");
+    if (a && getHostname(a.href) === domain) el.remove();
+  });
+  updateCounts();
+  applyFilter();
+
+  // INSERT blacklist
+  fetch(`${SB_URL}/rest/v1/${BL_TBL}`, {
+    method: "POST",
+    headers: {
+      apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`,
+      "Content-Type": "application/json",
+      Prefer: "resolution=ignore-duplicates,return=minimal",
+    },
+    body: JSON.stringify({ domain }),
+  }).catch(e => console.warn("blacklist:", e));
+
+  // PATCH ทุก URL ของ domain → trash
+  fetch(`${SB_URL}/rest/v1/${TABLE}?url=ilike.*${encodeURIComponent(domain)}*&status=neq.trash`, {
     method: "PATCH",
-    headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`,
-               "Content-Type": "application/json", Prefer: "return=minimal" },
-    body: JSON.stringify({ status: "read", read_at: now }),
-  }).catch(e => console.warn("patch:", e));
+    headers: {
+      apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`,
+      "Content-Type": "application/json", Prefer: "return=minimal",
+    },
+    body: JSON.stringify({ status: "trash" }),
+  }).catch(e => console.warn("block domain:", e));
 }
 
+// ── Counts / Badge ────────────────────────────────────────────────────────────
 function updateCounts() {
-  const n = poolNew.length;
-  const r = poolRead.length;
-  document.getElementById("cnt-new").textContent  = n;
-  document.getElementById("cnt-read").textContent = r;
+  document.getElementById("cnt-new").textContent    = poolNew.length;
+  document.getElementById("cnt-update").textContent = poolUpdate.length;
+  document.getElementById("cnt-read").textContent   = poolRead.length;
+  const n = poolNew.length, u = poolUpdate.length;
   const b = document.getElementById("badge");
-  b.textContent = n > 0 ? `${n} ยังไม่อ่าน` : "✓ อ่านครบ";
-  b.className   = n > 0 ? "badge badge-red" : "badge badge-grey";
+  if (n === 0 && u === 0) {
+    b.textContent = "✓ อ่านครบ"; b.className = "badge badge-grey";
+  } else {
+    const parts = [];
+    if (n > 0) parts.push(`${n} ใหม่`);
+    if (u > 0) parts.push(`${u} อัปเดต`);
+    b.textContent = parts.join(" · "); b.className = "badge badge-red";
+  }
 }
 
+// ── Pagination ────────────────────────────────────────────────────────────────
 function renderPager() {
   const pages = Math.ceil(filtered.length / PER);
   const pag   = document.getElementById("pagination");
