@@ -18,11 +18,16 @@ Budget: 700 credits/วัน (Serper plan ปัจจุบัน)
   L: Facebook                 =  5 cr
   รวม: ~240 credits  เหลือ buffer ~460
 
-
+การรันด้วยมือบนเครื่อง:
+  export SERPER_API_KEY="5f53f80a3c330ef18f42629073dc70f312ae3ade"
+  export SUPABASE_URL="https://pfnhxozecazjxjgpfrzu.supabase.co/rest/v1/"
+  export SUPABASE_KEY="sb_publishable_9idaI5irCf8jia0qABYyhA_P5VoRRBo"
+  python scraper_v4.py
 
 หมายเหตุ dedup:
-  content_hash = SHA256(normalize_url(url) + "|" + clean_snippet(snippet))
+  content_hash = SHA256(normalize_url(url) + "|" + title.strip())
   ตรงกับ extension content.js ทุกประการ
+  hash ซ้ำ → UPDATE snippet + status='update' (ไม่ insert ซ้ำ)
 """
 
 import os, hashlib, time, logging
@@ -262,21 +267,10 @@ def normalize_url(url: str) -> str:
     except Exception:
         return url
 
-import re as _re
-
-def clean_snippet(text: str) -> str:
-    """ลบ prefix วันที่/เวลาของ Google เช่น '3 วันที่ผ่านมา — ', '2 days ago — '"""
-    text = _re.sub(r'^\d+\s*(วัน|ชั่วโมง|นาที|สัปดาห์|เดือน|ปี)ที่ผ่านมา\s*[—\-]\s*', '', text)
-    text = _re.sub(r'^(เมื่อวาน|เมื่อกี้|ล่าสุด)\s*[—\-]\s*', '', text)
-    text = _re.sub(r'^\d+\s*(day|hour|minute|week|month|year)s?\s*ago\s*[—\-]\s*', '', text, flags=_re.I)
-    text = _re.sub(r'^\d{1,2}\s+[\u0E00-\u0E7F]+\.?\s+\d{4}\s*[—\-]\s*', '', text)
-    text = _re.sub(r'^[A-Za-z]{3,9}\.?\s+\d{1,2},?\s+\d{4}\s*[—\-]\s*', '', text)
-    text = _re.sub(r'^\d{1,4}[\/-]\d{1,2}[\/-]\d{2,4}\s*[—\-]\s*', '', text)
-    return text.strip()
-
-def make_content_hash(url: str, snippet: str) -> str:
-    """hash เหมือน extension: sha256(normalize_url | clean_snippet)"""
-    raw = f"{normalize_url(url)}|{clean_snippet(snippet).strip()}"
+def make_content_hash(url: str, title: str) -> str:
+    """hash = sha256(normalize_url(url) + "|" + title.strip())
+    ตรงกับ extension ทุกประการ"""
+    raw = f"{normalize_url(url)}|{title.strip()}"
     return hashlib.sha256(raw.encode()).hexdigest()
 
 def get_hostname(url: str) -> str:
@@ -331,10 +325,43 @@ def serper_search(query: str, tbs: str, max_pages: int) -> list[dict]:
 def upsert_rows(sb, rows: list[dict]) -> int:
     if not rows:
         return 0
-    sb.table(TABLE).upsert(
-        rows, on_conflict="content_hash", ignore_duplicates=True
-    ).execute()
-    return len(rows)
+
+    # ── ขั้น 1: INSERT ทุก row (ซ้ำ hash → ข้าม) ───────────────────────────────
+    try:
+        sb.table(TABLE).insert(
+            rows, returning="minimal"
+        ).execute()
+    except Exception:
+        pass  # handle collision ใน ขั้น 2
+
+    # ── ขั้น 2: PATCH row ที่ hash ซ้ำ → UPDATE snippet + status='update' ───────
+    hashes = [r["content_hash"] for r in rows]
+    try:
+        existing = (
+            sb.table(TABLE)
+            .select("content_hash")
+            .in_("content_hash", hashes)
+            .execute()
+        )
+        existing_hashes = {r["content_hash"] for r in (existing.data or [])}
+    except Exception:
+        existing_hashes = set()
+
+    new_hashes = {r["content_hash"] for r in rows} - existing_hashes
+    updated = 0
+    for r in rows:
+        if r["content_hash"] in existing_hashes:
+            try:
+                sb.table(TABLE).update({
+                    "snippet":    r.get("snippet", ""),
+                    "status":     "update",
+                    "updated_at": "now()",
+                }).eq("content_hash", r["content_hash"]).neq("status", "trash").execute()
+                updated += 1
+            except Exception:
+                pass
+
+    return len(new_hashes)
 
 def upsert_domains(sb, domain_rows: list[dict]):
     if not domain_rows:
@@ -352,10 +379,24 @@ def upsert_domains(sb, domain_rows: list[dict]):
 # ══════════════════════════════════════════════════════
 # MAIN
 # ══════════════════════════════════════════════════════
+def load_supabase_blacklist(sb) -> set:
+    """โหลด blacklist จาก anytime_domain_blacklist"""
+    try:
+        resp = sb.table("anytime_domain_blacklist").select("domain").execute()
+        domains = {r["domain"] for r in (resp.data or [])}
+        log.info(f"   blacklist โหลดแล้ว: {len(domains)} domains")
+        return domains
+    except Exception as e:
+        log.warning(f"   blacklist load error: {e}")
+        return set()
+
 def main():
     sb        = create_client(SUPABASE_URL, SUPABASE_KEY)
     today_str = TODAY.isoformat()
     queries   = build_queries()
+
+    # โหลด blacklist จาก Supabase รวมกับ PYTHON_BLOCKED
+    sb_blacklist = load_supabase_blacklist(sb)
 
     est_credits = sum(p for _, _, _, p in queries)
     log.info(f"▶ scraper_v4  วันที่ {today_str}")
@@ -385,12 +426,16 @@ def main():
             if not url or not title:
                 continue
 
-            # Python-level filter
+            # Python-level filter (PYTHON_BLOCKED + Supabase blacklist)
             if is_blocked(url):
                 total_blocked += 1
                 continue
+            h = get_hostname(url)
+            if any(h == d or h.endswith("." + d) for d in sb_blacklist):
+                total_blocked += 1
+                continue
 
-            chash = make_content_hash(url, snippet)
+            chash = make_content_hash(url, title)
             if chash in seen:
                 continue
             seen.add(chash)
@@ -417,11 +462,13 @@ def main():
                 "content_hash": chash,
                 "title":        title[:500],
                 "url":          url,
-                "snippet":      (item.get("snippet") or "")[:1000],
+                "snippet":      snippet[:1000],
                 "query_used":   q[:500],
                 "search_group": group,
                 "found_date":   today_str,
                 "status":       "new",
+                "source_type":  "v4",
+                "deep_status":  "pending",
             })
 
         saved = upsert_rows(sb, rows)
