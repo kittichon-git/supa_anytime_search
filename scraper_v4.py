@@ -326,16 +326,9 @@ def upsert_rows(sb, rows: list[dict]) -> int:
     if not rows:
         return 0
 
-    # ── ขั้น 1: INSERT ทุก row (ซ้ำ hash → ข้าม) ───────────────────────────────
-    try:
-        sb.table(TABLE).insert(
-            rows, returning="minimal"
-        ).execute()
-    except Exception:
-        pass  # handle collision ใน ขั้น 2
-
-    # ── ขั้น 2: PATCH row ที่ hash ซ้ำ → UPDATE snippet + status='update' ───────
     hashes = [r["content_hash"] for r in rows]
+
+    # ── ขั้น 1: query existing ก่อน INSERT ────────────────────────────────────
     try:
         existing = (
             sb.table(TABLE)
@@ -347,21 +340,27 @@ def upsert_rows(sb, rows: list[dict]) -> int:
     except Exception:
         existing_hashes = set()
 
-    new_hashes = {r["content_hash"] for r in rows} - existing_hashes
-    updated = 0
-    for r in rows:
-        if r["content_hash"] in existing_hashes:
-            try:
-                sb.table(TABLE).update({
-                    "snippet":    r.get("snippet", ""),
-                    "status":     "update",
-                    "updated_at": "now()",
-                }).eq("content_hash", r["content_hash"]).neq("status", "trash").execute()
-                updated += 1
-            except Exception:
-                pass
+    new_rows = [r for r in rows if r["content_hash"] not in existing_hashes]
+    upd_rows = [r for r in rows if r["content_hash"] in existing_hashes]
 
-    return len(new_hashes)
+    # ── ขั้น 2: INSERT เฉพาะ row ใหม่ ─────────────────────────────────────────
+    if new_rows:
+        try:
+            sb.table(TABLE).insert(new_rows, returning="minimal").execute()
+        except Exception:
+            pass
+
+    # ── ขั้น 3: PATCH row เดิม → status='update' ──────────────────────────────
+    for r in upd_rows:
+        try:
+            sb.table(TABLE).update({
+                "snippet": r.get("snippet", ""),
+                "status":  "update",
+            }).eq("content_hash", r["content_hash"]).neq("status", "trash").execute()
+        except Exception:
+            pass
+
+    return len(new_rows)
 
 def upsert_domains(sb, domain_rows: list[dict]):
     if not domain_rows:
