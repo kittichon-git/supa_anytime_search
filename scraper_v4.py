@@ -31,6 +31,8 @@ Budget: 700 credits/วัน (Serper plan ปัจจุบัน)
 """
 
 import os, hashlib, time, logging
+from dotenv import load_dotenv
+load_dotenv()
 from datetime import date
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 import requests
@@ -324,7 +326,7 @@ def serper_search(query: str, tbs: str, max_pages: int) -> list[dict]:
 # ══════════════════════════════════════════════════════
 def upsert_rows(sb, rows: list[dict]) -> int:
     if not rows:
-        return 0
+        return 0, 0
 
     hashes = [r["content_hash"] for r in rows]
 
@@ -353,14 +355,14 @@ def upsert_rows(sb, rows: list[dict]) -> int:
     # ── ขั้น 3: PATCH row เดิม → status='update' ──────────────────────────────
     for r in upd_rows:
         try:
-            sb.table(TABLE).update({
+            resp = sb.table(TABLE).update({
                 "snippet": r.get("snippet", ""),
                 "status":  "update",
             }).eq("content_hash", r["content_hash"]).neq("status", "trash").execute()
-        except Exception:
-            pass
+        except Exception as e:
+            log.warning(f"PATCH update error: {e}")
 
-    return len(new_rows)
+    return len(new_rows), len(upd_rows)
 
 def upsert_domains(sb, domain_rows: list[dict]):
     if not domain_rows:
@@ -405,7 +407,13 @@ def main():
     total_saved    = 0
     total_blocked  = 0
     seen: set[str] = set()
-    seen_domains: set[str] = set()
+    # โหลด domain ที่มีใน DB แล้ว เพื่อไม่ต้อง INSERT ซ้ำ → ลด 409
+    try:
+        _dr = sb.table(DOMAIN_TABLE).select("domain").execute()
+        seen_domains: set[str] = {r["domain"] for r in (_dr.data or [])}
+        log.info(f"   known domains: {len(seen_domains)}")
+    except Exception:
+        seen_domains: set[str] = set()
     cur_group = ""
 
     for group, q, tbs, pages in queries:
@@ -470,16 +478,17 @@ def main():
                 "deep_status":  "pending",
             })
 
-        saved = upsert_rows(sb, rows)
+        saved, updated = upsert_rows(sb, rows)
         upsert_domains(sb, domain_rows)
         total_saved += saved
-        log.info(f"  [{tbs}][{len(hits):3d}h/{saved:3d}new] {q[:70]!r}")
+        log.info(f"  [{tbs}][{len(hits):3d}h/{saved:3d}new/{updated:3d}upd] {q[:70]!r}")
         time.sleep(SLEEP_SEC)
 
     log.info(
         f"\n✅ เสร็จสิ้น  hits:{total_hits}  ใหม่:{total_saved}  "
         f"blocked:{total_blocked}  วันที่:{today_str}"
     )
+    # total_updated ไม่ได้ track ระดับ global แต่ดูได้จาก log แต่ละ query
 
 
 if __name__ == "__main__":
