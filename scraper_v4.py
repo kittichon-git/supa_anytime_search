@@ -330,20 +330,28 @@ def upsert_rows(sb, rows: list[dict]) -> int:
 
     hashes = [r["content_hash"] for r in rows]
 
-    # ── ขั้น 1: query existing ก่อน INSERT ────────────────────────────────────
+    def norm(s):
+        return " ".join((s or "").split()).strip()
+
+    # ── ขั้น 1: query existing (hash + snippet + status เดิม) ──────────────────
     try:
         existing = (
             sb.table(TABLE)
-            .select("content_hash")
+            .select("content_hash, snippet, status")
             .in_("content_hash", hashes)
             .execute()
         )
-        existing_hashes = {r["content_hash"] for r in (existing.data or [])}
+        existing_map = {
+            r["content_hash"]: {"snippet": r["snippet"], "status": r["status"]}
+            for r in (existing.data or [])
+        }
     except Exception:
-        existing_hashes = set()
+        existing_map = {}
 
-    new_rows = [r for r in rows if r["content_hash"] not in existing_hashes]
-    upd_rows = [r for r in rows if r["content_hash"] in existing_hashes]
+    new_rows = [r for r in rows if r["content_hash"] not in existing_map]
+    upd_rows = [r for r in rows
+                if r["content_hash"] in existing_map
+                and norm(r.get("snippet", "")) != norm(existing_map[r["content_hash"]]["snippet"])]
 
     # ── ขั้น 2: INSERT เฉพาะ row ใหม่ ─────────────────────────────────────────
     if new_rows:
@@ -352,12 +360,17 @@ def upsert_rows(sb, rows: list[dict]) -> int:
         except Exception:
             pass
 
-    # ── ขั้น 3: PATCH row เดิม → status='update' ──────────────────────────────
+    # ── ขั้น 3: PATCH เฉพาะ row ที่ snippet เปลี่ยน ───────────────────────────
     for r in upd_rows:
         try:
-            resp = sb.table(TABLE).update({
-                "snippet": r.get("snippet", ""),
-                "status":  "update",
+            old_status = existing_map[r["content_hash"]]["status"]
+            # read → แจ้งเตือนพนักงานว่ามีการเปลี่ยนแปลง
+            # new/update → อัปเดต snippet เงียบๆ คง status เดิม
+            new_status = "update" if old_status == "read" else old_status
+            sb.table(TABLE).update({
+                "snippet":     r.get("snippet", ""),
+                "status":      new_status,
+                "deep_status": "pending",
             }).eq("content_hash", r["content_hash"]).neq("status", "trash").execute()
         except Exception as e:
             log.warning(f"PATCH update error: {e}")
